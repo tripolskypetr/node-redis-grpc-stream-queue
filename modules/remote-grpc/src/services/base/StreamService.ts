@@ -56,7 +56,6 @@ export class StreamService {
     reconnect: (error: boolean) => void,
     attempt: number
   ): SendMessageFn<any> => {
-    console.log("SERVER CTOR");
     this.loggerService.log(
       `remote-grpc streamService _makeServerInternal connecting service=${serviceName} attempt=${attempt}`
     );
@@ -200,7 +199,6 @@ export class StreamService {
     reconnect: (error: boolean) => void,
     attempt: number
   ): SendMessageFn<any> => {
-    console.log("CLIENT CTOR");
     this.loggerService.log(
       `remote-grpc streamService _makeClientInternal connecting service=${serviceName} attempt=${attempt}`
     );
@@ -327,7 +325,6 @@ export class StreamService {
     let attempt = 0;
     let outgoingFnRef: SendMessageFn<any>;
 
-
     const makeBroadcast = singlerun(async () => {
       while (queue.length) {
         let isOk = true;
@@ -372,12 +369,12 @@ export class StreamService {
       makeBroadcast();
     }
 
-    return queued(async (outgoing: IMessage) => {
+    return async (outgoing: IMessage) => {
       const [awaiter, { resolve }] = createAwaiter<void>();
       queue.push([outgoing, { resolve }]);
       await makeBroadcast();
       return await awaiter;
-    });
+    };
   };
 
   makeClient = <T = object>(
