@@ -6,6 +6,7 @@ message IncomingMsg {
     string userId = 3;
     string requestId = 4;
     string data = 5;
+    string stamp = 6;
 }
 
 message OutgoingMsg {
@@ -14,6 +15,7 @@ message OutgoingMsg {
     string userId = 3;
     string requestId = 4;
     string data = 5;
+    string stamp = 6;
 }
 
 service MessageService {

@@ -2,6 +2,8 @@
     "name": "node-grpc-stream-queue",
     "private": true,
     "scripts": { 
+        "start:client": "node ./services/msg-client-service/build/index.mjs",
+        "start:server": "node ./services/msg-server-service/build/index.mjs",
         "repl": "npm run build && node -e \"globalThis[Symbol.for('error-handler-installed')] = 1; import('./scripts/repl.mjs')\" --interactive",
         "start": "npm run pm2:stop && npm run build && npm run pm2:start",
         "pm2:start": "pm2 start ./config/ecosystem.config.js",

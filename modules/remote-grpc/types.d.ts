@@ -55,17 +55,16 @@ interface IMessage<Data = object> {
     clientId: string;
     userId: string;
     requestId: string;
+    stamp: string;
     data: Data;
 }
 type SendMessageFn<T = object> = (outgoing: IMessage<T>) => Promise<void | typeof CANCELED_PROMISE_SYMBOL>;
-interface IAwaiter {
-    resolve(): void;
-}
 declare class StreamService {
     private readonly protoService;
     private readonly loggerService;
-    _makeServerInternal: <T = object>(serviceName: ServiceName, connector: (incoming: IMessage<T>) => Promise<void>, reconnect: (queue: [IMessage, IAwaiter][], error: boolean) => void, attempt: number, queue?: [IMessage, IAwaiter][]) => SendMessageFn<any>;
-    _makeClientInternal: <T = object>(serviceName: ServiceName, connector: (incoming: IMessage<T>) => Promise<void>, reconnect: (queue: [IMessage, IAwaiter][], error: boolean) => void, attempt: number, queue?: [IMessage, IAwaiter][]) => SendMessageFn<any>;
+    _serverRef: Map<string, grpc$1.Server>;
+    _makeServerInternal: <T = object>(serviceName: ServiceName, connector: (incoming: IMessage<T>) => Promise<void>, reconnect: (error: boolean) => void, attempt: number) => SendMessageFn<any>;
+    _makeClientInternal: <T = object>(serviceName: ServiceName, connector: (incoming: IMessage<T>) => Promise<void>, reconnect: (error: boolean) => void, attempt: number) => SendMessageFn<any>;
     makeServer: <T = object>(serviceName: ServiceName, connector: (incoming: IMessage<T>) => Promise<void>) => SendMessageFn<any>;
     makeClient: <T = object>(serviceName: ServiceName, connector: (incoming: IMessage<T>) => Promise<void>) => SendMessageFn<any>;
 }

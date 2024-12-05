@@ -10,8 +10,7 @@ function getSecondsSinceMidnight() {
 }
 
 const send = grpc.streamService.makeClient<{ side: string, value: string }>("MessageService", async (message) => {
-    console.log(`${message.data.side} ${message.data.value}`)
-    await sleep(250);
+    console.log(`from=${message.data.side} value=${message.data.value} stamp=${message.stamp}`)
 });
 
 setInterval(() => {
@@ -23,7 +22,8 @@ setInterval(() => {
         data: {
             side: "client",
             value: getSecondsSinceMidnight(),
-        }
+        },
+        stamp: Date.now().toString(),
     })
 }, 1_000);
 

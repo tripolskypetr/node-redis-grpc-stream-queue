@@ -1,49 +1,29 @@
 # remote-grpc
 
+## StreamService
+
+The StreamService is a TypeScript class that provides methods to create server and client instances for communication between services. It has a constructor, several properties and two main methods: makeServer() and makeClient().
+
+The protoService and loggerService properties are instances of other classes used for service communication and logging, respectively. The _makeServerInternal() and _makeClientInternal() methods are internal helper functions used to create server and client instances with customizable options.
+
+The makeServer() method creates a server instance for communication between services, taking the service name and a connector function as parameters. The makeClient() method creates a client instance for communication between services, also taking the service name and a connector function as parameters. Both methods return a SendMessageFn, which can be used to send messages between services.
+
 ## ProtoService
 
-ProtoService is a TypeScript class that provides functionality for managing gRPC services. It has a constructor, properties such as loggerService and _protoMap, and methods like loadProto, makeClient, and makeServer. The loggerService property is used for logging, while _protoMap stores the loaded gRPC protobuf definitions. The loadProto method loads a gRPC protobuf definition by name and returns the corresponding GrpcObject. The makeClient method creates a client for the specified gRPC service, while makeServer creates a server for the specified gRPC service using a provided connector. The available services are "FooService", "BarService", and "BazService".
+ProtoService is a TypeScript class that provides functionality for managing gRPC services. It has a constructor, properties like loggerService and _protoMap, as well as methods loadProto and makeClient. The class allows for creating gRPC clients and servers using the specified service names, such as "FooService", "BarService", "BazService" or "MessageService". The loadProto method loads the specified proto file and returns a GrpcObject, while the makeClient method creates a client for the specified service. The makeServer method creates a server for the specified service using a provided connector.
 
 ## LoggerService
 
-The LoggerService is a TypeScript class that provides logging functionality. It has a constructor which initializes the `_logger` property, likely an instance of a logging library or object. The `log` property is a function that allows you to log messages with optional arguments. The `setPrefix` property is a function that allows you to set a prefix for all log messages.
+The LoggerService is a TypeScript class that provides logging functionality. It has a constructor which initializes the `_logger` property, and two methods: `log()` and `setPrefix()`. 
 
-## FooClientService
+The `_logger` property is a variable that stores the logging instance, and it is initialized in the constructor. The `log()` method is used to log messages with optional arguments. The `setPrefix()` method is used to set a custom prefix for the log messages.
 
-The `FooClientService` is a TypeScript class that implements the `GRPC.IFooService` interface, which means it provides methods to interact with a gRPC service. The class has three properties: `protoService`, `loggerService`, and `_fooClient`. 
+## ErrorService
 
-The constructor of `FooClientService` does not take any arguments.
+The `ErrorService` is a TypeScript class that handles errors globally within the application. It has a constructor that initializes the service and two properties: `handleGlobalError` and `_listenForError`. 
 
-The `protoService` property is of type `any`, and it seems to be a reference to the protobuf service definition.
+The `handleGlobalError` property is a function that takes an `Error` object as input and returns `never`. This function is responsible for handling global errors that occur in the application.
 
-The `loggerService` property is of type `any`, and it appears to be a logger service for logging messages.
+The `_listenForError` property is a variable that listens for errors in the application. It is of type `any`, which means it can hold any value or type.
 
-The `_fooClient` property is of type `any`, and it seems to be a client for communicating with the gRPC service.
-
-The `Execute` method is a generic function that takes any number of arguments and returns a Promise. It is used to execute the gRPC service methods.
-
-The `init` method is a void function that initializes the `_fooClient` property by creating a new instance of the gRPC client using the `protoService` and `loggerService`.
-
-## BazClientService
-
-The BazClientService is a TypeScript class that implements the `GRPC.IBazService` interface, which means it provides methods to interact with a gRPC service. The class has three properties: `protoService`, `loggerService`, and `_bazClient`. 
-
-The constructor of the class is used to initialize it, but its implementation details are not specified in the reference. 
-
-The `protoService` property is of type any and seems to hold the protobuf service definition. The `loggerService` property is also of type any and appears to be a logger service for logging messages. The `_bazClient` property is of type any and seems to be a client for interacting with the gRPC service.
-
-The `Execute` method is a generic function that takes any number of arguments and returns a Promise. It is used to execute the gRPC service method.
-
-The `init` method is used to initialize the class, but its implementation details are not specified in the reference.
-
-## BarClientService
-
-The `BarClientService` is a class that implements the `GRPC.IBarService` interface, which means it provides methods to interact with a gRPC service related to bars. The class has a constructor that initializes the `protoService` and `loggerService` properties, as well as the private `_barClient` property.
-
-The `protoService` property holds the gRPC service definition, which is used to generate the client stub for interacting with the gRPC service. The `loggerService` property is an instance of a logger service, which can be used to log messages during the execution of the class methods.
-
-The `_barClient` property is a private instance of the gRPC client, which is created using the `protoService` property.
-
-The class also has two methods: `Execute` and `init`. The `Execute` method is a generic function that takes any number of arguments and returns a Promise. It is used to execute gRPC calls by passing the arguments and returning the response. The `init` method is used to initialize the gRPC client by creating an instance of it using the `protoService` property.
-
-Overall, the `BarClientService` class provides a way to interact with a gRPC service related to bars by initializing the client and executing gRPC calls.
+The `init` property is a function that initializes the `ErrorService`. When called, it sets up the error handling mechanism within the application.

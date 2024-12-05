@@ -13,6 +13,7 @@ import {
   CANCELED_PROMISE_SYMBOL,
   singleshot,
   sleep,
+  singlerun,
 } from "functools-kit";
 
 type Ctor = new (...args: any[]) => grpc.Client;
@@ -21,11 +22,14 @@ type ServiceName = keyof typeof CC_GRPC_MAP;
 const CHANNEL_OK_SYMBOL = Symbol("channel-ok");
 const CHANNEL_ERROR_SYMBOL = Symbol("channel-error");
 
+const CHANNEL_RECONNECT_SYMBOL = Symbol("channel-reconnect");
+
 interface IMessage<Data = object> {
   serviceName: string;
   clientId: string;
   userId: string;
   requestId: string;
+  stamp: string;
   data: Data;
 }
 
@@ -44,29 +48,35 @@ export class StreamService {
   private readonly protoService = inject<ProtoService>(TYPES.protoService);
   private readonly loggerService = inject<LoggerService>(TYPES.loggerService);
 
+  _serverRef = new Map<string, grpc.Server>();
+
   _makeServerInternal = <T = object>(
     serviceName: ServiceName,
     connector: (incoming: IMessage<T>) => Promise<void>,
-    reconnect: (queue: [IMessage, IAwaiter][], error: boolean) => void,
-    attempt: number,
-    queue?: [IMessage, IAwaiter][]
+    reconnect: (error: boolean) => void,
+    attempt: number
   ): SendMessageFn<any> => {
+    console.log("SERVER CTOR");
     this.loggerService.log(
       `remote-grpc streamService _makeServerInternal connecting service=${serviceName} attempt=${attempt}`
     );
     const { grpcHost, protoName } = CC_GRPC_MAP[serviceName];
     const proto = this.protoService.loadProto(protoName);
 
-    let isClosed = false;
     let isRunning = false;
-
-    const outgoingSubject = new Subject<void>();
-    const outgoingQueue: [IMessage, IAwaiter][] = queue ? [...queue] : [];
 
     const errorSubject = new Subject<typeof CHANNEL_ERROR_SYMBOL>();
     const succeedSubject = new Subject<typeof CHANNEL_OK_SYMBOL>();
+    const messageSubject = new Subject<IMessage>();
+
+    {
+      const prevServer = this._serverRef.get(serviceName);
+      prevServer && prevServer.forceShutdown();
+    }
 
     const server = new grpc.Server();
+    this._serverRef.set(serviceName, server);
+
     server.addService(
       get(proto, `${serviceName}.service`) as unknown as grpc.ServiceDefinition,
       {
@@ -74,9 +84,9 @@ export class StreamService {
           call: grpc.ServerWritableStream<IMessage<string>, IMessage<string>>
         ) => {
           if (isRunning) {
-            call.emit('error', {
+            call.emit("error", {
               code: grpc.status.INVALID_ARGUMENT,
-              message: 'Only one bidirectional connection allowed',
+              message: "Only one bidirectional connection allowed",
             });
             return;
           }
@@ -85,7 +95,7 @@ export class StreamService {
 
           call.on("data", (message: IMessage<string>) => {
             this.loggerService.log(
-              `remote-grpc streamService makeServer incoming service=${serviceName}`,
+              `remote-grpc streamService _makeServerInternal incoming service=${serviceName}`,
               { incoming: message }
             );
             connector({
@@ -93,6 +103,7 @@ export class StreamService {
               data: JSON.parse(message.data),
               requestId: message.requestId,
               serviceName: message.serviceName,
+              stamp: message.stamp,
               userId: message.userId,
             });
           });
@@ -101,69 +112,61 @@ export class StreamService {
           });
           call.on("end", () => {
             this.loggerService.log(
-              `remote-grpc streamService Server stream end for ${serviceName}, host=${grpcHost}`
+              `remote-grpc streamService _makeServerInternal Server stream end for ${serviceName}, host=${grpcHost}`
             );
             call.end();
-            isClosed = true;
             errorSubject.next(CHANNEL_ERROR_SYMBOL);
-            reconnect(outgoingQueue, false);
+            reconnect(false);
+          });
+          call.on("cancel", () => {
+            this.loggerService.log(
+              `remote-grpc streamService _makeServerInternal Server stream cancel for ${serviceName}, host=${grpcHost}`
+            );
+            errorSubject.next(CHANNEL_ERROR_SYMBOL);
+            reconnect(false);
+          });
+          call.on("close", () => {
+            this.loggerService.log(
+              `remote-grpc streamService _makeServerInternal Server stream close for ${serviceName}, host=${grpcHost}`
+            );
+            errorSubject.next(CHANNEL_ERROR_SYMBOL);
+            reconnect(false);
           });
           call.on("error", (err) => {
             this.loggerService.log(
-              `remote-grpc streamService Server stream error for ${serviceName}, host=${grpcHost}, error=${JSON.stringify(errorData(err))}`
+              `remote-grpc streamService _makeServerInternal Server stream error for ${serviceName}, host=${grpcHost}, error=${JSON.stringify(errorData(err))}`
             );
-            isClosed = true;
             errorSubject.next(CHANNEL_ERROR_SYMBOL);
-            reconnect(outgoingQueue, true);
+            reconnect(true);
           });
-          {
-            const emit = async () => {
-              while (outgoingQueue.length) {
-                if (isClosed) {
-                  break;
+
+          messageSubject.subscribe(async (outgoing: IMessage) => {
+            call.write(
+              {
+                clientId: outgoing.clientId,
+                requestId: outgoing.requestId,
+                serviceName: outgoing.serviceName,
+                userId: outgoing.userId,
+                stamp: outgoing.stamp,
+                data: JSON.stringify(outgoing.data),
+              },
+              (err: any) => {
+                if (err) {
+                  errorSubject.next(CHANNEL_ERROR_SYMBOL);
+                  return;
                 }
-                const [[outgoing, { resolve }]] = outgoingQueue;
-                this.loggerService.log(
-                  `remote-grpc streamService makeServer outgoing service=${serviceName}`,
-                  { outgoing }
-                );
-                try {
-                  call.write(
-                    {
-                      clientId: outgoing.clientId,
-                      requestId: outgoing.requestId,
-                      serviceName: outgoing.serviceName,
-                      userId: outgoing.userId,
-                      data: JSON.stringify(outgoing.data),
-                    },
-                    (err: any) => {
-                      if (err) {
-                        errorSubject.next(CHANNEL_ERROR_SYMBOL);
-                        return;
-                      }
-                      succeedSubject.next(CHANNEL_OK_SYMBOL);
-                    }
-                  );
-                  const result = await Promise.race([
-                    errorSubject.toPromise(),
-                    succeedSubject.toPromise(),
-                  ]);
-                  if (result === CHANNEL_ERROR_SYMBOL) {
-                    break;
-                  }
-                  outgoingQueue.shift();
-                  resolve();
-                } catch (error) {
-                  this.loggerService.log(
-                    `remote-grpc streamService makeServer outgoing error service=${serviceName}`,
-                    { outgoing: errorData(error) }
-                  );
-                }
+                succeedSubject.next(CHANNEL_OK_SYMBOL);
               }
-            };
-            outgoingSubject.subscribe(emit);
-            emit();
-          }
+            );
+            const result = await Promise.race([
+              errorSubject.toPromise(),
+              succeedSubject.toPromise(),
+            ]);
+            if (result === CHANNEL_ERROR_SYMBOL) {
+              return Promise.reject();
+            }
+            return Promise.resolve();
+          });
         },
       }
     );
@@ -185,21 +188,19 @@ export class StreamService {
       }
     );
 
-    return queued(async (outgoing: IMessage) => {
-      const [pending, awaiter] = createAwaiter<void>();
-      outgoingQueue.push([outgoing, awaiter]);
-      outgoingSubject.next();
-      return await pending;
-    });
+    return async (outgoing: IMessage) => {
+      await messageSubject.waitForListener();
+      await messageSubject.next(outgoing);
+    };
   };
 
   _makeClientInternal = <T = object>(
     serviceName: ServiceName,
     connector: (incoming: IMessage<T>) => Promise<void>,
-    reconnect: (queue: [IMessage, IAwaiter][], error: boolean) => void,
-    attempt: number,
-    queue?: [IMessage, IAwaiter][]
+    reconnect: (error: boolean) => void,
+    attempt: number
   ): SendMessageFn<any> => {
+    console.log("CLIENT CTOR");
     this.loggerService.log(
       `remote-grpc streamService _makeClientInternal connecting service=${serviceName} attempt=${attempt}`
     );
@@ -208,12 +209,9 @@ export class StreamService {
     const Ctor = get(proto, serviceName) as unknown as Ctor;
     const grpcClient = new Ctor(grpcHost, grpc.credentials.createInsecure());
 
-    const outgoingSubject = new Subject<void>();
-    const outgoingQueue: [IMessage, IAwaiter][] = queue ? [...queue] : [];
-    let isClosed = false;
-
     const errorSubject = new Subject<typeof CHANNEL_ERROR_SYMBOL>();
     const succeedSubject = new Subject<typeof CHANNEL_OK_SYMBOL>();
+    const messageSubject = new Subject<IMessage>();
 
     grpcClient.waitForReady(Date.now() + GRPC_READY_DELAY, (err) => {
       if (err) {
@@ -230,7 +228,7 @@ export class StreamService {
       const call = fn() as grpc.ClientWritableStream<IMessage<string>>;
       call.on("data", (message: IMessage<string>) => {
         this.loggerService.log(
-          `remote-grpc streamService makeClient incoming service=${serviceName}`,
+          `remote-grpc streamService _makeClientInternal incoming service=${serviceName}`,
           { incoming: message }
         );
         connector({
@@ -238,6 +236,7 @@ export class StreamService {
           data: JSON.parse(message.data),
           requestId: message.requestId,
           serviceName: message.serviceName,
+          stamp: message.stamp,
           userId: message.userId,
         });
       });
@@ -246,77 +245,70 @@ export class StreamService {
       });
       call.on("end", () => {
         this.loggerService.log(
-          `remote-grpc streamService Client stream end for ${serviceName}, host=${grpcHost}`
+          `remote-grpc streamService _makeClientInternal Client stream end for ${serviceName}, host=${grpcHost}`
         );
         call.end();
-        isClosed = true;
         errorSubject.next(CHANNEL_ERROR_SYMBOL);
-        reconnect(outgoingQueue, false);
+        reconnect(false);
+      });
+      call.on("cancel", () => {
+        this.loggerService.log(
+          `remote-grpc streamService _makeClientInternal Client stream cancel for ${serviceName}, host=${grpcHost}`
+        );
+        errorSubject.next(CHANNEL_ERROR_SYMBOL);
+        reconnect(false);
+      });
+      call.on("close", () => {
+        this.loggerService.log(
+          `remote-grpc streamService _makeClientInternal Client stream close for ${serviceName}, host=${grpcHost}`
+        );
+        errorSubject.next(CHANNEL_ERROR_SYMBOL);
+        reconnect(false);
       });
       call.on("error", (err) => {
         this.loggerService.log(
-          `remote-grpc streamService Client stream error for ${serviceName}, host=${grpcHost}, error=${JSON.stringify(errorData(err))}`
+          `remote-grpc streamService _makeClientInternal Client stream error for ${serviceName}, host=${grpcHost}, error=${JSON.stringify(errorData(err))}`
         );
-        isClosed = true;
         errorSubject.next(CHANNEL_ERROR_SYMBOL);
-        reconnect(outgoingQueue, true);
+        reconnect(true);
       });
-      {
-        const emit = async () => {
-          while (outgoingQueue.length) {
-            if (isClosed) {
-              break;
+      messageSubject.subscribe(async (outgoing: IMessage) => {
+        this.loggerService.log(
+          `remote-grpc streamService _makeClientInternal outgoing service=${serviceName}`,
+          { outgoing }
+        );
+        call.write(
+          {
+            clientId: outgoing.clientId,
+            requestId: outgoing.requestId,
+            serviceName: outgoing.serviceName,
+            userId: outgoing.userId,
+            stamp: outgoing.stamp,
+            data: JSON.stringify(outgoing.data),
+          },
+          (err: any) => {
+            if (err) {
+              errorSubject.next(CHANNEL_ERROR_SYMBOL);
+              return;
             }
-            const [[outgoing, { resolve }]] = outgoingQueue;
-            this.loggerService.log(
-              `remote-grpc streamService makeClient outgoing service=${serviceName}`,
-              { outgoing }
-            );
-            try {
-              call.write(
-                {
-                  clientId: outgoing.clientId,
-                  requestId: outgoing.requestId,
-                  serviceName: outgoing.serviceName,
-                  userId: outgoing.userId,
-                  data: JSON.stringify(outgoing.data),
-                },
-                (err: any) => {
-                  if (err) {
-                    errorSubject.next(CHANNEL_ERROR_SYMBOL);
-                    return;
-                  }
-                  succeedSubject.next(CHANNEL_OK_SYMBOL);
-                }
-              );
-              const result = await Promise.race([
-                errorSubject.toPromise(),
-                succeedSubject.toPromise(),
-              ]);
-              if (result === CHANNEL_ERROR_SYMBOL) {
-                break;
-              }
-              outgoingQueue.shift();
-              resolve();
-            } catch (error) {
-              this.loggerService.log(
-                `remote-grpc streamService makeServer outgoing error service=${serviceName}`,
-                { outgoing: errorData(error) }
-              );
-            }
+            succeedSubject.next(CHANNEL_OK_SYMBOL);
           }
-        };
-        outgoingSubject.subscribe(emit);
-        emit();
-      }
+        );
+        const result = await Promise.race([
+          errorSubject.toPromise(),
+          succeedSubject.toPromise(),
+        ]);
+        if (result === CHANNEL_ERROR_SYMBOL) {
+          return Promise.reject();
+        }
+        return Promise.resolve();
+      });
     });
 
-    return queued(async (outgoing: IMessage) => {
-      const [pending, awaiter] = createAwaiter<void>();
-      outgoingQueue.push([outgoing, awaiter]);
-      outgoingSubject.next();
-      return await pending;
-    });
+    return async (outgoing: IMessage) => {
+      await messageSubject.waitForListener();
+      await messageSubject.next(outgoing);
+    };
   };
 
   makeServer = <T = object>(
@@ -326,24 +318,66 @@ export class StreamService {
     this.loggerService.log(
       `remote-grpc streamService makeServer connecting service=${serviceName}`
     );
-    let outgoingRef: SendMessageFn<any> = () => Promise.resolve();
+
+    const reconnectSubject = new Subject<typeof CHANNEL_RECONNECT_SYMBOL>();
+
+    const queue: [IMessage, IAwaiter][] = [];
+    const connectorFn = queued(connector) as typeof connector;
+
     let attempt = 0;
-    const connectorFn = queued(connector);
-    const makeConnection = (queue: [IMessage, IAwaiter][]) => {
-      if (attempt >= GRPC_MAX_RETRY) {
-        throw new Error( `remote-grpc streamService makeServer max retry reached service=${serviceName}`);
+    let outgoingFnRef: SendMessageFn<any>;
+
+
+    const makeBroadcast = singlerun(async () => {
+      while (queue.length) {
+        let isOk = true;
+        try {
+          const [[outgoingMsg, { resolve }]] = queue;
+          const status = await Promise.race([
+            outgoingFnRef(outgoingMsg),
+            reconnectSubject.toPromise(),
+          ]);
+          if (status === CHANNEL_RECONNECT_SYMBOL) {
+            this.loggerService.log(`remote-grpc streamService makeServer reconnect service=${serviceName}`)
+            throw CHANNEL_ERROR_SYMBOL;
+          }
+          await resolve();
+        } catch {
+          isOk = false;
+        } finally {
+          if (isOk) {
+            queue.shift();
+          }
+        }
       }
-      attempt += 1;
-      outgoingRef = this._makeServerInternal<T>(
-        serviceName,
-        async (...args) => { await connectorFn(...args) },
-        singleshot(makeConnection),
-        attempt,
-        queue
-      );
-    };
-    makeConnection([]);
-    return async (...args) => await outgoingRef(...args);
+    });
+
+    {
+      const makeConnection = () => {
+        if (attempt >= GRPC_MAX_RETRY) {
+          throw new Error(
+            `remote-grpc streamService makeServer max retry reached service=${serviceName}`
+          );
+        }
+        attempt += 1;
+        reconnectSubject.next(CHANNEL_RECONNECT_SYMBOL);
+        outgoingFnRef = this._makeServerInternal<T>(
+          serviceName,
+          connectorFn,
+          singleshot(makeConnection),
+          attempt
+        );
+      };
+      makeConnection();
+      makeBroadcast();
+    }
+
+    return queued(async (outgoing: IMessage) => {
+      const [awaiter, { resolve }] = createAwaiter<void>();
+      queue.push([outgoing, { resolve }]);
+      await makeBroadcast();
+      return await awaiter;
+    });
   };
 
   makeClient = <T = object>(
@@ -353,24 +387,65 @@ export class StreamService {
     this.loggerService.log(
       `remote-grpc streamService makeClient connecting service=${serviceName}`
     );
-    let outgoingRef: SendMessageFn<any> = () => Promise.resolve();
+
+    const reconnectSubject = new Subject<typeof CHANNEL_RECONNECT_SYMBOL>();
+
+    const queue: [IMessage, IAwaiter][] = [];
+    const connectorFn = queued(connector) as typeof connector;
+
     let attempt = 0;
-    const connectorFn = queued(connector);
-    const makeConnection = (queue: [IMessage, IAwaiter][]) => {
-      if (attempt >= GRPC_MAX_RETRY) {
-        throw new Error( `remote-grpc streamService makeClient max retry reached service=${serviceName}`);
+    let outgoingFnRef: SendMessageFn<any>;
+
+    const makeBroadcast = singlerun(async () => {
+      while (queue.length) {
+        let isOk = true;
+        try {
+          const [[outgoingMsg, { resolve }]] = queue;
+          const status = await Promise.race([
+            outgoingFnRef(outgoingMsg),
+            reconnectSubject.toPromise(),
+          ]);
+          if (status === CHANNEL_RECONNECT_SYMBOL) {
+            this.loggerService.log(`remote-grpc streamService makeClient reconnect service=${serviceName}`)
+            throw CHANNEL_ERROR_SYMBOL;
+          }
+          await resolve();
+        } catch {
+          isOk = false;
+        } finally {
+          if (isOk) {
+            queue.shift();
+          }
+        }
       }
-      attempt += 1;
-      outgoingRef = this._makeClientInternal<T>(
-        serviceName,
-        async (...args) => { await connectorFn(...args) },
-        singleshot(makeConnection),
-        attempt,
-        queue
-      );
+    });
+
+    {
+      const makeConnection = () => {
+        if (attempt >= GRPC_MAX_RETRY) {
+          throw new Error(
+            `remote-grpc streamService makeClient max retry reached service=${serviceName}`
+          );
+        }
+        attempt += 1;
+        reconnectSubject.next(CHANNEL_RECONNECT_SYMBOL);
+        outgoingFnRef = this._makeClientInternal<T>(
+          serviceName,
+          connectorFn,
+          singleshot(makeConnection),
+          attempt
+        );
+      };
+      makeConnection();
+      makeBroadcast();
+    }
+
+    return async (outgoing: IMessage) => {
+      const [awaiter, { resolve }] = createAwaiter<void>();
+      queue.push([outgoing, { resolve }]);
+      await makeBroadcast();
+      return await awaiter;
     };
-    makeConnection([]);
-    return async (...args) => await outgoingRef(...args);
   };
 }
 
