@@ -1,0 +1,14 @@
+{
+  "name": "@apps/host-sse",
+  "module": "index.ts",
+  "type": "module",
+  "scripts": {
+    "start": "npm run build && node ./build/index.mjs",
+    "start:debug": "npm run build && node --inspect-brk ./build/index.mjs",
+    "build": "rollup -c"
+  },
+  "dependencies": {
+    "@modules/remote-grpc": "*",
+    "functools-kit": "^1.0.35"
+  }
+}
