@@ -17,9 +17,10 @@
   "dependencies": {
     "@grpc/grpc-js": "1.12.2",
     "@grpc/proto-loader": "0.7.13",
+    "di-singleton": "1.0.0",
     "di-kit": "1.0.11",
     "di-lazy": "1.0.4",
-    "functools-kit": "1.0.39",
+    "functools-kit": "1.0.40",
     "long": "5.2.3",
     "pinolog": "1.0.2"
   }
