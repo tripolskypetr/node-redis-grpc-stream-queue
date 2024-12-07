@@ -7,8 +7,18 @@
     "start:debug": "npm run build && node --inspect-brk ./build/index.mjs",
     "build": "rollup -c"
   },
+  "devDependencies": {
+    "@types/lodash-es": "4.17.12",
+    "@types/uuid": "10.0.0"
+  },
   "dependencies": {
+    "@hono/node-server": "^1.13.7",
     "@modules/remote-grpc": "*",
-    "functools-kit": "^1.0.35"
+    "di-singleton": "1.0.0",
+    "functools-kit": "1.0.39",
+    "hono": "^4.6.13",
+    "lodash-es": "4.17.21",
+    "pinolog": "1.0.2",
+    "uuid": "11.0.3"
   }
 }
