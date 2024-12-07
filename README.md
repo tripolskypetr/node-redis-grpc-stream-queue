@@ -4,11 +4,42 @@
 
 ![screencast](./screencast.gif)
 
-## Usage
+## Test case 1: console-grpc-streaming
+
+> Console apps which stream events to each other through gRPC
+
+**Setup**
 
 ```bash
 npm install
 npm run build
-node .\services\msg-client-service\build\index.mjs
-node .\services\msg-server-service\build\index.mjs
+```
+
+**Running**
+
+```bash
+npm run start:msg-client
+npm run start:msg-server
+```
+
+## Test case 2: sse-grpc-streaming
+
+> HTTP/2 Server-Sent Events frontend app which recieves messages from gRPC service
+
+**Setup**
+
+```bash
+npm install
+npm run build
+mkdir ssl
+cd ssl
+mkcert localhost # choco install mkcert
+```
+
+**Running**
+
+```bash
+npm run start:msg-server
+npm run start:host-sse
+npx-y open-cli https://localhost
 ```
