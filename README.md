@@ -10,15 +10,16 @@
 
 **Setup**
 
-No setup required
+```bash
+npm install
+npm run build
+```
 
 **Running**
 
 ```bash
-npm install
-npm run build
-node ./services/msg-client-service/build/index.mjs
-node ./services/msg-server-service/build/index.mjs
+npm run start:msg-client
+npm run start:msg-server
 ```
 
 ## Test case 2: sse-grpc-streaming
@@ -26,16 +27,19 @@ node ./services/msg-server-service/build/index.mjs
 > HTTP/2 Server-Sent Events frontend app which recieves messages from gRPC service
 
 **Setup**
+
 ```bash
 npm install
 npm run build
-cd ./apps/host-sse/ssl
+mkdir ssl
+cd ssl
 mkcert localhost # choco install mkcert
 ```
 
 **Running**
 
 ```bash
-node ./apps/host-sse/build/index.mjs
+npm run start:msg-server
+npm run start:host-sse
 npx-y open-cli https://localhost
 ```

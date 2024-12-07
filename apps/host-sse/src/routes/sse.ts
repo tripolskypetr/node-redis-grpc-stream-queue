@@ -3,7 +3,8 @@ import { stream } from "hono/streaming";
 
 import { singleton } from "di-singleton";
 
-import { pubsub, Subject, IPubsubWrappedFn, Source } from "functools-kit";
+import { pubsub, Subject, IPubsubWrappedFn } from "functools-kit";
+import { grpc } from "@modules/remote-grpc";
 
 const CONNECTION_SSE_RETRY = 5_000;
 
@@ -59,7 +60,7 @@ const ConnectionManager = singleton(
 
 const connectionManager = new ConnectionManager();
 
-app.get("/sse/:id", async (c) => {
+app.get("/:id", async (c) => {
   const connectionId = c.req.param("id");
 
   c.header('Content-Type', 'text/event-stream');
@@ -88,8 +89,8 @@ app.get("/sse/:id", async (c) => {
   });
 });
 
-Source.fromInterval(1_000).connect((value) => {
-  connectionManager.emit({ value });
+grpc.streamService.makeClient<{ side: string, value: string }>("MessageService", async (message) => {
+  connectionManager.emit(message.data);
 });
 
 export default app;

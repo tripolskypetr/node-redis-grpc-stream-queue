@@ -6,13 +6,13 @@ import { serveStatic } from '@hono/node-server/serve-static'
 import http2 from 'http2'
 import fs from "fs";
 
-import realtime from './routes/realtime';
+import sse from './routes/sse';
 
 const app = new Hono();
 
-app.route('/api/v1/realtime', realtime);
+app.route('/api/v1/realtime/sse', sse);
 
-app.use('/*', serveStatic({ root: './public' }))
+app.use('/*', serveStatic({ root: './public/sse' }))
 
 serve({
   fetch: app.fetch,
