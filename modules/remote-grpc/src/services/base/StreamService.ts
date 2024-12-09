@@ -371,6 +371,7 @@ export class StreamService {
           if (isOk) {
             await queue.shift();
           }
+          await sleep(10);
         }
       }
     });
@@ -472,6 +473,7 @@ export class StreamService {
           if (isOk) {
             await queue.shift();
           }
+          await sleep(10);
         }
       }
     });
