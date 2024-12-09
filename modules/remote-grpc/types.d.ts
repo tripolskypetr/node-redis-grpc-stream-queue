@@ -1,6 +1,6 @@
 import * as grpc$1 from '@grpc/grpc-js';
 import { CC_GRPC_MAP as CC_GRPC_MAP$1 } from 'src/config/params';
-import { CANCELED_PROMISE_SYMBOL } from 'functools-kit';
+import { CANCELED_PROMISE_SYMBOL, Subject, IPubsubWrappedFn } from 'functools-kit';
 
 declare class LoggerService {
     private _logger;
@@ -69,6 +69,23 @@ declare class StreamService {
     makeClient: <T = object>(serviceName: ServiceName, connector: (incoming: IMessage<T>) => Promise<void>) => SendMessageFn<any>;
 }
 
+type MessageListener<Data = any> = (data: Data) => Promise<boolean>;
+declare const ConnectionManager: {
+    new (connectionPoolId: string): {
+        _disconnectSubject: Subject<string>;
+        _listenerMap: Map<string, IPubsubWrappedFn<any>>;
+        _emitMap: Map<string, MessageListener<any>>;
+        readonly connectionPoolId: string;
+        listenEvent: <Data = any>(id: string, emit: MessageListener<Data>) => Promise<void>;
+        listenDisconnect: (id: string, fn: () => void) => void;
+        emit: <Data = any>(data: Data) => void;
+    };
+} & {
+    clear(): void;
+    clear(connectionPoolId: string): void;
+};
+type TConnectionManager = InstanceType<typeof ConnectionManager>;
+
 declare const grpc: {
     fooClientService: {
         readonly protoService: ProtoService;
@@ -97,4 +114,4 @@ declare const grpc: {
     streamService: StreamService;
 };
 
-export { grpc };
+export { ConnectionManager, type TConnectionManager, grpc };

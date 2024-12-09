@@ -41,5 +41,24 @@ mkcert localhost # choco install mkcert
 ```bash
 npm run start:msg-server
 npm run start:host-sse
-npx-y open-cli https://localhost
+npx -y open-cli https://localhost
+```
+
+## Test case 3 ws-grpc-streaming
+
+> WebSocket frontend app which recieves messages from gRPC service
+
+**Setup**
+
+```bash
+npm install
+npm run build
+```
+
+**Running**
+
+```bash
+npm run start:msg-server
+npm run start:host-ws
+npx -y open-cli http://localhost
 ```

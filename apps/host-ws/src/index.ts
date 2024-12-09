@@ -1,27 +1,17 @@
-import { Hono } from 'hono'
-
 import { serve } from '@hono/node-server'
 import { serveStatic } from '@hono/node-server/serve-static'
 
-import http2 from 'http2'
-import fs from "fs";
+import "./routes/ws";
 
-import ws from './routes/ws';
-
-const app = new Hono();
-
-app.route('/api/v1/realtime/ws', ws);
+import { app, injectWebSocket } from './config/app';
 
 app.use('/*', serveStatic({ root: './public/ws' }))
 
-serve({
+const server = serve({
   fetch: app.fetch,
-  createServer: http2.createSecureServer,
-  serverOptions: {
-    key: fs.readFileSync("./ssl/localhost-key.pem"),
-    cert: fs.readFileSync("./ssl/localhost.pem"),
-  },
-  port: 443,
+  port: 80,
 });
 
-console.log("Server listening on https://localhost:443");
+injectWebSocket(server)
+
+console.log("Server listening on http://localhost:80");

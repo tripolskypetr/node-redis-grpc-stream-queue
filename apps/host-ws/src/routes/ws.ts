@@ -1,45 +1,42 @@
 import { Hono } from "hono";
-import { stream } from "hono/streaming";
+import { WSContext } from "hono/ws";
 
-import { singleton } from "di-singleton";
+import { ConnectionManager, grpc } from "@modules/remote-grpc";
+import { singleshot } from "functools-kit";
+import { app, upgradeWebSocket } from "src/config/app";
 
-import { pubsub, Subject, IPubsubWrappedFn } from "functools-kit";
-import { grpc } from "@modules/remote-grpc";
+const connectionManager = new ConnectionManager("ws");
 
-const CONNECTION_SSE_RETRY = 5_000;
+app.get("/api/v1/realtime/ws", upgradeWebSocket(() => {
 
-const app = new Hono();
+  let isClosed = false;
 
-const connectionManager = new ConnectionManager();
-
-app.get("/:id", async (c) => {
-  const connectionId = c.req.param("id");
-
-  c.header('Content-Type', 'text/event-stream');
-  c.header('Cache-Control', 'no-cache');
-  c.header('Connection', 'keep-alive');
-
-  return stream(c, async (stream) => {
-
-    stream.write(`retry: ${CONNECTION_SSE_RETRY}\n\n`);
-
-    connectionManager.listenEvent(connectionId, async (data) => {
-      if (stream.aborted) {
+  const makeConnection = singleshot((sessionId: string, ws: WSContext) => {
+    connectionManager.listenEvent(sessionId, async (data) => {
+      if (isClosed) {
         return false;
       }
-      await stream.write(`data: ${JSON.stringify(data)}\n\n`)
+      ws.send(JSON.stringify(data));
       return true;
     });
 
-    connectionManager.listenDisconnect(connectionId, () => {
-      if (!stream.aborted) {
-        stream.abort();
+    connectionManager.listenDisconnect(sessionId, () => {
+      if (!isClosed) {
+        ws.close();
       }
     });
-
-    return new Promise<void>((res) => stream.onAbort(() => res()));
   });
-});
+
+  return {
+    onMessage(event, ws) {
+      const { sessionId } = JSON.parse(event.data.toString());
+      makeConnection(sessionId, ws);
+    },
+    onClose: () => {
+      isClosed = true;
+    },
+  }
+}));
 
 grpc.streamService.makeClient<{ side: string, value: string }>("MessageService", async (message) => {
   connectionManager.emit(message.data);

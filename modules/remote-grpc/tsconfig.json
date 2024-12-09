@@ -12,6 +12,7 @@
     "noFallthroughCasesInSwitch": true,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
+    "downlevelIteration": true,
     "noPropertyAccessFromIndexSignature": false,
   },
 }

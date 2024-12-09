@@ -5,6 +5,7 @@
         "start:msg-client": "node ./services/msg-client-service/build/index.mjs",
         "start:msg-server": "node ./services/msg-server-service/build/index.mjs",
         "start:host-sse": "node ./apps/host-sse/build/index.mjs",
+        "start:host-ws": "node ./apps/host-ws/build/index.mjs",
         "repl": "npm run build && node -e \"globalThis[Symbol.for('error-handler-installed')] = 1; import('./scripts/repl.mjs')\" --interactive",
         "build": "npm run build:modules && npm run build:services && npm run build:apps",
         "build:modules": "dotenv -e .env -- lerna run build --scope=@modules/*",

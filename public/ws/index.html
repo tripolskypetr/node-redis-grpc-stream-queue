@@ -1,0 +1,38 @@
+<pre></pre>
+
+<script defer>
+const pre = document.querySelector("pre");
+
+function getSessionId() {
+    let sessionId = sessionStorage.getItem("session_id");
+    if (!sessionId) {
+        sessionId = Date.now().toString();
+        sessionStorage.setItem("session_id", sessionId);
+    }
+    return sessionId;
+}
+
+const sessionId = getSessionId();
+
+pre.innerHTML += `Session id: ${sessionId}\n`;
+
+const socket = new WebSocket(`/api/v1/realtime/ws`);
+
+socket.addEventListener("open", () => {
+    pre.innerHTML += "WebSocket connection opened.\n";
+    socket.send(JSON.stringify({ sessionId }));
+});
+
+socket.addEventListener("message", (event) => {
+    pre.innerHTML += `Message: ${event.data}\n`;
+});
+
+socket.addEventListener("close", () => {
+    pre.innerHTML += "WebSocket connection closed.\n";
+});
+
+socket.addEventListener("error", (error) => {
+    console.error(error);
+    pre.innerHTML += "WebSocket error occurred. Check console for details.\n";
+});
+</script>

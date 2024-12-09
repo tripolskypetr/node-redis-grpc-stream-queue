@@ -3,9 +3,6 @@ import "./config/provide";
 import { inject, init } from "./core/di";
 import type LoggerService from "./services/base/LoggerService";
 import ProtoService from "./services/base/ProtoService";
-import type BarClientService from "./services/client/BarClientService";
-import type BazClientService from "./services/client/BazClientService";
-import type FooClientService from "./services/client/FooClientService";
 import ErrorService from "./services/base/ErrorService";
 import type StreamService from "./services/base/StreamService";
 import type { TFooClientService } from "./services/client/FooClientService";
@@ -31,3 +28,5 @@ export const grpc = {
     ...baseServices,
     ...clientServices,
 };
+
+export { ConnectionManager, TConnectionManager } from './common/ConnectionManager';
