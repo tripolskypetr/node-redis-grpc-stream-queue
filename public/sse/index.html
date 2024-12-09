@@ -1,0 +1,31 @@
+<pre></pre>
+
+<script defer>
+const pre = document.querySelector("pre");
+
+function getSessionId() {
+    let sessionId = sessionStorage.getItem("session_id");
+    if (!sessionId) {
+        sessionId = Date.now().toString();
+        sessionStorage.setItem("session_id", sessionId);
+    }
+    return sessionId;
+}
+
+const sessionId = getSessionId();
+
+pre.innerHTML += `Session id: ${sessionId}\n`;
+
+const eventSource = new EventSource(`/api/v1/realtime/sse/${sessionId}`);
+
+eventSource.onmessage = (event) => {
+    pre.innerHTML += `Message: ${event.data}\n`;
+};
+
+eventSource.onerror = (error) => {
+    console.error(error);
+    pre.innerHTML += `Stream closed. Check console for error`;
+    eventSource.close();
+};
+
+</script>
