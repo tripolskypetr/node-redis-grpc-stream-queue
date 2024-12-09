@@ -378,17 +378,20 @@ export class StreamService {
 
     {
       const makeConnection = () => {
-        if (attempt >= GRPC_MAX_RETRY) {
-          throw new Error(
-            `remote-grpc streamService makeServer max retry reached service=${serviceName}`
-          );
-        }
         attempt += 1;
         reconnectSubject.next(CHANNEL_RECONNECT_SYMBOL);
         outgoingFnRef = this._makeServerInternal<T>(
           serviceName,
           connectorFn,
-          singleshot(makeConnection),
+          singleshot(async () => {
+            if (attempt >= GRPC_MAX_RETRY) {
+              await queue.clear();
+              throw new Error(
+                `remote-grpc streamService makeServer max retry reached service=${serviceName}`
+              );
+            }
+            makeConnection();
+          }),
           attempt
         );
       };
@@ -480,17 +483,20 @@ export class StreamService {
 
     {
       const makeConnection = () => {
-        if (attempt >= GRPC_MAX_RETRY) {
-          throw new Error(
-            `remote-grpc streamService makeClient max retry reached service=${serviceName}`
-          );
-        }
         attempt += 1;
         reconnectSubject.next(CHANNEL_RECONNECT_SYMBOL);
         outgoingFnRef = this._makeClientInternal<T>(
           serviceName,
           connectorFn,
-          singleshot(makeConnection),
+          singleshot(async () => {
+            if (attempt >= GRPC_MAX_RETRY) {
+              await queue.clear();
+              throw new Error(
+                `remote-grpc streamService makeClient max retry reached service=${serviceName}`
+              );
+            }
+            makeConnection();
+          }),
           attempt
         );
       };
