@@ -17,6 +17,8 @@ While the server or the client offline, the message buffering to the queue. Afte
 ```bash
 npm install
 npm run build
+cd modules/remote-redis/docker
+docker-compose up -d
 ```
 
 **Running**
@@ -40,6 +42,8 @@ npm run build
 mkdir ssl
 cd ssl
 mkcert localhost # choco install mkcert
+cd modules/remote-redis/docker
+docker-compose up -d
 ```
 
 **Running**
@@ -61,6 +65,8 @@ npx -y open-cli https://localhost
 ```bash
 npm install
 npm run build
+cd modules/remote-redis/docker
+docker-compose up -d
 ```
 
 **Running**
