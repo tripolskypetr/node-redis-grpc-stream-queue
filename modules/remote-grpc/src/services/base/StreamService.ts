@@ -373,6 +373,7 @@ export class StreamService {
       const [awaiter, { resolve }] = createAwaiter<void>();
       queue.push([outgoing, { resolve }]);
       await makeBroadcast();
+      attempt = 0;
       return await awaiter;
     };
   };
@@ -441,6 +442,7 @@ export class StreamService {
       const [awaiter, { resolve }] = createAwaiter<void>();
       queue.push([outgoing, { resolve }]);
       await makeBroadcast();
+      attempt = 0;
       return await awaiter;
     };
   };
