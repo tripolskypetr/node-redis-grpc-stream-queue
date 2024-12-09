@@ -14,6 +14,9 @@ import {
   singleshot,
   sleep,
   singlerun,
+  IPubsubArray,
+  PubsubArrayAdapter,
+  randomString,
 } from "functools-kit";
 
 type Ctor = new (...args: any[]) => grpc.Client;
@@ -39,6 +42,14 @@ export type SendMessageFn<T = object> = (
 
 const GRPC_READY_DELAY = 60_000;
 const GRPC_MAX_RETRY = 15;
+
+export interface IMakeClientConfig<T = object> {
+  queue: IPubsubArray<[string, IMessage<T>]>;
+}
+
+export interface IMakeServerConfig<T = object> {
+  queue: IPubsubArray<[string, IMessage<T>]>;
+}
 
 interface IAwaiter {
   resolve(): void;
@@ -311,39 +322,54 @@ export class StreamService {
 
   makeServer = <T = object>(
     serviceName: ServiceName,
-    connector: (incoming: IMessage<T>) => Promise<void>
+    connector: (incoming: IMessage<T>) => Promise<void>,
+    { queue = new PubsubArrayAdapter() }: Partial<IMakeServerConfig> = {}
   ): SendMessageFn<any> => {
     this.loggerService.log(
       `remote-grpc streamService makeServer connecting service=${serviceName}`
     );
 
     const reconnectSubject = new Subject<typeof CHANNEL_RECONNECT_SYMBOL>();
-
-    const queue: [IMessage, IAwaiter][] = [];
     const connectorFn = queued(connector) as typeof connector;
+
+    const awaiterMap = new Map<string, IAwaiter>();
 
     let attempt = 0;
     let outgoingFnRef: SendMessageFn<any>;
 
     const makeBroadcast = singlerun(async () => {
-      while (queue.length) {
+      while (await queue.length()) {
         let isOk = true;
         try {
-          const [[outgoingMsg, { resolve }]] = queue;
+          const first = await queue.getFirst();
+          if (!first) {
+            break;
+          }
+          const [id, outgoingMsg] = first;
+          const awaiter = awaiterMap.get(id);
+          if (!awaiter) {
+            this.loggerService.log(
+              "remote-grpc streamService makeServer missing awaiter",
+              { id, outgoingMsg }
+            );
+            continue;
+          }
           const status = await Promise.race([
             outgoingFnRef(outgoingMsg),
             reconnectSubject.toPromise(),
           ]);
           if (status === CHANNEL_RECONNECT_SYMBOL) {
-            this.loggerService.log(`remote-grpc streamService makeServer reconnect service=${serviceName}`)
+            this.loggerService.log(
+              `remote-grpc streamService makeServer reconnect service=${serviceName}`
+            );
             throw CHANNEL_ERROR_SYMBOL;
           }
-          await resolve();
+          await awaiter.resolve();
         } catch {
           isOk = false;
         } finally {
           if (isOk) {
-            queue.shift();
+            await queue.shift();
           }
         }
       }
@@ -366,54 +392,85 @@ export class StreamService {
         );
       };
       makeConnection();
-      makeBroadcast();
     }
 
-    return async (outgoing: IMessage) => {
-      const [awaiter, { resolve }] = createAwaiter<void>();
-      queue.push([outgoing, { resolve }]);
+    const makeCommit = async (outgoing: IMessage) => {
+      const [result, awaiter] = createAwaiter<void>();
+      const id = randomString();
+      awaiterMap.set(id, awaiter);
+      await queue.push([id, outgoing]);
       await makeBroadcast();
+      return await result;
+    };
+
+    const makeInit = singleshot(async () => {
+      const resolveList: Promise<void>[] = [];
+      for await (const [id] of queue) {
+        const [resolve, awaiter] = createAwaiter<void>();
+        awaiterMap.set(id, awaiter);
+        resolveList.push(resolve);
+      }
+      await makeBroadcast();
+      await Promise.all(resolveList);
+    });
+
+    return async (outgoing: IMessage) => {
+      await makeInit();
+      await makeCommit(outgoing);
       attempt = 0;
-      return await awaiter;
     };
   };
 
   makeClient = <T = object>(
     serviceName: ServiceName,
     connector: (incoming: IMessage<T>) => Promise<void>,
-    
+    { queue = new PubsubArrayAdapter() }: Partial<IMakeClientConfig> = {}
   ): SendMessageFn<any> => {
     this.loggerService.log(
       `remote-grpc streamService makeClient connecting service=${serviceName}`
     );
 
     const reconnectSubject = new Subject<typeof CHANNEL_RECONNECT_SYMBOL>();
-
-    const queue: [IMessage, IAwaiter][] = [];
     const connectorFn = queued(connector) as typeof connector;
+
+    const awaiterMap = new Map<string, IAwaiter>();
 
     let attempt = 0;
     let outgoingFnRef: SendMessageFn<any>;
 
     const makeBroadcast = singlerun(async () => {
-      while (queue.length) {
+      while (await queue.length()) {
         let isOk = true;
         try {
-          const [[outgoingMsg, { resolve }]] = queue;
+          const first = await queue.getFirst();
+          if (!first) {
+            break;
+          }
+          const [id, outgoingMsg] = first;
+          const awaiter = awaiterMap.get(id);
+          if (!awaiter) {
+            this.loggerService.log(
+              "remote-grpc streamService makeClient missing awaiter",
+              { id, outgoingMsg }
+            );
+            continue;
+          }
           const status = await Promise.race([
             outgoingFnRef(outgoingMsg),
             reconnectSubject.toPromise(),
           ]);
           if (status === CHANNEL_RECONNECT_SYMBOL) {
-            this.loggerService.log(`remote-grpc streamService makeClient reconnect service=${serviceName}`)
+            this.loggerService.log(
+              `remote-grpc streamService makeClient reconnect service=${serviceName}`
+            );
             throw CHANNEL_ERROR_SYMBOL;
           }
-          await resolve();
+          await awaiter.resolve();
         } catch {
           isOk = false;
         } finally {
           if (isOk) {
-            queue.shift();
+            await queue.shift();
           }
         }
       }
@@ -436,15 +493,32 @@ export class StreamService {
         );
       };
       makeConnection();
-      makeBroadcast();
     }
 
-    return async (outgoing: IMessage) => {
-      const [awaiter, { resolve }] = createAwaiter<void>();
-      queue.push([outgoing, { resolve }]);
+    const makeCommit = async (outgoing: IMessage) => {
+      const [result, awaiter] = createAwaiter<void>();
+      const id = randomString();
+      awaiterMap.set(id, awaiter);
+      await queue.push([id, outgoing]);
       await makeBroadcast();
+      return await result;
+    };
+
+    const makeInit = singleshot(async () => {
+      const resolveList: Promise<void>[] = [];
+      for await (const [id] of queue) {
+        const [resolve, awaiter] = createAwaiter<void>();
+        awaiterMap.set(id, awaiter);
+        resolveList.push(resolve);
+      }
+      await makeBroadcast();
+      await Promise.all(resolveList);
+    });
+
+    return async (outgoing: IMessage) => {
+      await makeInit();
+      await makeCommit(outgoing);
       attempt = 0;
-      return await awaiter;
     };
   };
 }
