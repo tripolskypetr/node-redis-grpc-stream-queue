@@ -1,8 +1,8 @@
 const baseServices = {
     protoService: Symbol('protoService'),
     loggerService: Symbol('loggerService'),
-    errorService: Symbol.for('errorService'),
-    streamService: Symbol.for('streamService'),
+    errorService: Symbol('errorService'),
+    streamService: Symbol('streamService'),
 };
 
 const clientServices = {

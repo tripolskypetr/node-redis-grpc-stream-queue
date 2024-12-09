@@ -1,7 +1,7 @@
 import { singleton } from "di-singleton";
 import { IPubsubWrappedFn, pubsub, Subject } from "functools-kit";
 
-type MessageListener<Data = any> = (data: Data) => Promise<boolean>;
+type MessageListener<Data extends WeakKey = any> = (data: Data) => Promise<boolean>;
 
 export const ConnectionManager = singleton(
   class {
@@ -12,7 +12,7 @@ export const ConnectionManager = singleton(
 
     constructor(readonly connectionPoolId: string) { }
 
-    listenEvent = async <Data = any>(
+    listenEvent = async <Data extends WeakKey = any>(
       id: string,
       emit: MessageListener<Data>
     ) => {
@@ -43,7 +43,7 @@ export const ConnectionManager = singleton(
       this._disconnectSubject.filter((channelId) => channelId === id).once(fn);
     };
 
-    emit = <Data = any>(data: Data) => {
+    emit = <Data extends WeakKey = any>(data: Data) => {
       for (const fn of this._listenerMap.values()) {
         fn(data);
       }

@@ -69,16 +69,16 @@ declare class StreamService {
     makeClient: <T = object>(serviceName: ServiceName, connector: (incoming: IMessage<T>) => Promise<void>) => SendMessageFn<any>;
 }
 
-type MessageListener<Data = any> = (data: Data) => Promise<boolean>;
+type MessageListener<Data extends WeakKey = any> = (data: Data) => Promise<boolean>;
 declare const ConnectionManager: {
     new (connectionPoolId: string): {
         _disconnectSubject: Subject<string>;
         _listenerMap: Map<string, IPubsubWrappedFn<any>>;
         _emitMap: Map<string, MessageListener<any>>;
         readonly connectionPoolId: string;
-        listenEvent: <Data = any>(id: string, emit: MessageListener<Data>) => Promise<void>;
+        listenEvent: <Data extends WeakKey = any>(id: string, emit: MessageListener<Data>) => Promise<void>;
         listenDisconnect: (id: string, fn: () => void) => void;
-        emit: <Data = any>(data: Data) => void;
+        emit: <Data extends WeakKey = any>(data: Data) => void;
     };
 } & {
     clear(): void;

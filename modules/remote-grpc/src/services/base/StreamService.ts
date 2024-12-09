@@ -14,6 +14,8 @@ import {
   singleshot,
   sleep,
   singlerun,
+  PubsubArrayAdapter,
+  IPubsubArrayFactory
 } from "functools-kit";
 
 type Ctor = new (...args: any[]) => grpc.Client;
@@ -380,7 +382,8 @@ export class StreamService {
 
   makeClient = <T = object>(
     serviceName: ServiceName,
-    connector: (incoming: IMessage<T>) => Promise<void>
+    connector: (incoming: IMessage<T>) => Promise<void>,
+    
   ): SendMessageFn<any> => {
     this.loggerService.log(
       `remote-grpc streamService makeClient connecting service=${serviceName}`

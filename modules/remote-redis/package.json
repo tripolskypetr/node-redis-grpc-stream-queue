@@ -1,5 +1,5 @@
 {
-  "name": "@modules/remote-grpc",
+  "name": "@modules/remote-redis",
   "private": true,
   "scripts": {
     "build": "rollup -c",
@@ -17,10 +17,12 @@
   "dependencies": {
     "@grpc/grpc-js": "1.12.2",
     "@grpc/proto-loader": "0.7.13",
-    "di-singleton": "1.0.5",
+    "di-factory": "^1.0.8",
     "di-kit": "1.0.11",
     "di-lazy": "1.0.4",
+    "di-singleton": "1.0.5",
     "functools-kit": "1.0.42",
+    "ioredis": "5.4.1",
     "long": "5.2.3",
     "pinolog": "1.0.2"
   }

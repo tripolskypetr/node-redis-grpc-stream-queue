@@ -16,7 +16,7 @@
     "@hono/node-ws": "1.0.4",
     "@modules/remote-grpc": "*",
     "di-singleton": "1.0.5",
-    "functools-kit": "1.0.40",
+    "functools-kit": "1.0.42",
     "hono": "4.6.13",
     "lodash-es": "4.17.21",
     "pinolog": "1.0.2",
