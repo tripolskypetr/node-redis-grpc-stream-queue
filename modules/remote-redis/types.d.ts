@@ -124,6 +124,58 @@ declare const MsgServerServerConnection_base: (new () => {
 declare class MsgServerServerConnection extends MsgServerServerConnection_base {
 }
 
+declare const HostSseWebConnection_base: (new () => {
+    readonly redisService: RedisService;
+    readonly loggerService: LoggerService;
+    readonly connectionKey: string;
+    push(value: any): Promise<void>;
+    shift(): Promise<any | null>;
+    length(): Promise<number>;
+    getFirst(): Promise<any | null>;
+    clear(): Promise<void>;
+    [Symbol.asyncIterator](): AsyncIterableIterator<any>;
+}) & Omit<{
+    new (connectionKey: string): {
+        readonly redisService: RedisService;
+        readonly loggerService: LoggerService;
+        readonly connectionKey: string;
+        push(value: any): Promise<void>;
+        shift(): Promise<any | null>;
+        length(): Promise<number>;
+        getFirst(): Promise<any | null>;
+        clear(): Promise<void>;
+        [Symbol.asyncIterator](): AsyncIterableIterator<any>;
+    };
+}, "prototype">;
+declare class HostSseWebConnection extends HostSseWebConnection_base {
+}
+
+declare const HostWsWebConnection_base: (new () => {
+    readonly redisService: RedisService;
+    readonly loggerService: LoggerService;
+    readonly connectionKey: string;
+    push(value: any): Promise<void>;
+    shift(): Promise<any | null>;
+    length(): Promise<number>;
+    getFirst(): Promise<any | null>;
+    clear(): Promise<void>;
+    [Symbol.asyncIterator](): AsyncIterableIterator<any>;
+}) & Omit<{
+    new (connectionKey: string): {
+        readonly redisService: RedisService;
+        readonly loggerService: LoggerService;
+        readonly connectionKey: string;
+        push(value: any): Promise<void>;
+        shift(): Promise<any | null>;
+        length(): Promise<number>;
+        getFirst(): Promise<any | null>;
+        clear(): Promise<void>;
+        [Symbol.asyncIterator](): AsyncIterableIterator<any>;
+    };
+}, "prototype">;
+declare class HostWsWebConnection extends HostWsWebConnection_base {
+}
+
 type MessageListener<Data = any> = (data: Data) => Promise<boolean>;
 interface IListenerConfig<Data = any> {
     queue: IPubsubArray<[string, Data]>;
@@ -147,6 +199,8 @@ type TConnectionManager = InstanceType<typeof ConnectionManager>;
 declare const redis: {
     hostSseClientConnection: HostSseClientConnection;
     hostWsClientConnection: HostWsClientConnection;
+    hostSseWebConnection: HostSseWebConnection;
+    hostWsWebConnection: HostWsWebConnection;
     msgClientClientConnection: MsgClientClientConnection;
     msgServerServerConnection: MsgServerServerConnection;
     redisService: RedisService;

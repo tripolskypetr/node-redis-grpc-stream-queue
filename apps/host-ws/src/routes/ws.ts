@@ -19,7 +19,7 @@ app.get("/api/v1/realtime/ws", upgradeWebSocket(() => {
       ws.send(JSON.stringify(data));
       return true;
     }, {
-      queue: redis.hostWsClientConnection,
+      queue: redis.hostWsWebConnection,
     });
 
     connectionManager.listenDisconnect(sessionId, () => {
@@ -42,6 +42,8 @@ app.get("/api/v1/realtime/ws", upgradeWebSocket(() => {
 
 grpc.streamService.makeClient<{ side: string, value: string }>("MessageService", async (message) => {
   connectionManager.emit(message.data);
+}, {
+  queue: redis.hostWsClientConnection,
 });
 
 export default app;

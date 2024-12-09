@@ -28,7 +28,7 @@ app.get("/:id", async (c) => {
       await stream.write(`data: ${JSON.stringify(data)}\n\n`)
       return true;
     }, {
-      queue: redis.hostSseClientConnection,
+      queue: redis.hostSseWebConnection,
     });
 
     connectionManager.listenDisconnect(connectionId, () => {
@@ -43,6 +43,8 @@ app.get("/:id", async (c) => {
 
 grpc.streamService.makeClient<{ side: string, value: string }>("MessageService", async (message) => {
   connectionManager.emit(message.data);
+}, {
+  queue: redis.hostSseClientConnection,
 });
 
 export default app;
