@@ -12,13 +12,13 @@ export const BaseConnection = factory(class {
   constructor(readonly connectionKey: string) {
   }
 
-  async push(value: object): Promise<void> {
+  async push(value: any): Promise<void> {
     this.loggerService.log(`BaseConnection push connection=${this.connectionKey}`, { value });
     const redis = await this.redisService.getRedis();
     await redis.rpush(this.connectionKey, JSON.stringify(value));
   }
 
-  async shift(): Promise<object | null> {
+  async shift(): Promise<any | null> {
     this.loggerService.log(`BaseConnection shift connection=${this.connectionKey}`);
     const redis = await this.redisService.getRedis();
     const value = await redis.lpop(this.connectionKey);
@@ -31,14 +31,14 @@ export const BaseConnection = factory(class {
     return await redis.llen(this.connectionKey);
   }
 
-  async getFirst(): Promise<object | null> {
+  async getFirst(): Promise<any | null> {
     this.loggerService.log(`BaseConnection getFirst connection=${this.connectionKey}`);
     const redis = await this.redisService.getRedis();
     const value = await redis.lindex(this.connectionKey, 0);
     return value ? JSON.parse(value) : null;
   }
 
-  async *[Symbol.asyncIterator](): AsyncIterableIterator<object> {
+  async *[Symbol.asyncIterator](): AsyncIterableIterator<any> {
     this.loggerService.log(`BaseConnection iterate connection=${this.connectionKey}`);
     const redis = await this.redisService.getRedis();
     const length = await this.length();
@@ -46,6 +46,12 @@ export const BaseConnection = factory(class {
       const value = await redis.lindex(this.connectionKey, i);
       yield value ? JSON.parse(value) : null;
     }
+  }
+
+  async clear(): Promise<void> {
+    this.loggerService.log(`BaseConnection clear connection=${this.connectionKey}`);
+    const redis = await this.redisService.getRedis();
+    await redis.del(this.connectionKey);
   }
 
 })

@@ -1,7 +1,8 @@
 import { Hono } from "hono";
 import { stream } from "hono/streaming";
 
-import { grpc, ConnectionManager } from "@modules/remote-grpc";
+import { grpc } from "@modules/remote-grpc";
+import { redis, ConnectionManager } from "@modules/remote-redis";
 
 const CONNECTION_SSE_RETRY = 5_000;
 
@@ -26,6 +27,8 @@ app.get("/:id", async (c) => {
       }
       await stream.write(`data: ${JSON.stringify(data)}\n\n`)
       return true;
+    }, {
+      queue: redis.hostSseClientConnection,
     });
 
     connectionManager.listenDisconnect(connectionId, () => {

@@ -15,6 +15,7 @@
     "@hono/node-server": "1.13.7",
     "@hono/node-ws": "1.0.4",
     "@modules/remote-grpc": "*",
+    "@modules/remote-redis": "*",
     "di-singleton": "1.0.5",
     "functools-kit": "1.0.42",
     "hono": "4.6.13",

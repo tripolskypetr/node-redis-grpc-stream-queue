@@ -1,4 +1,5 @@
 import TYPES from "./config/types";
+import "./config/provide";
 import { inject, init } from "./core/di";
 import ErrorService from "./services/base/ErrorService";
 import LoggerService from "./services/base/LoggerService";
@@ -21,9 +22,11 @@ const dataServices = {
     msgServerServerConnection: inject<MsgServerServerConnection>(TYPES.msgServerServerConnection),
 };
 
+init();
+
 export const redis = {
     ...baseServices,
     ...dataServices,
 }
 
-init();
+export { ConnectionManager, TConnectionManager } from './common/ConnectionManager';

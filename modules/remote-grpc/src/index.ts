@@ -28,5 +28,3 @@ export const grpc = {
     ...baseServices,
     ...clientServices,
 };
-
-export { ConnectionManager, TConnectionManager } from './common/ConnectionManager';

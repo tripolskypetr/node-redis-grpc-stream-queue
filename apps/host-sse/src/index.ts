@@ -2,6 +2,8 @@ import { Hono } from 'hono'
 
 import { serve } from '@hono/node-server'
 import { serveStatic } from '@hono/node-server/serve-static'
+import { grpc } from "@modules/remote-grpc";
+import { redis } from "@modules/remote-redis";
 
 import http2 from 'http2'
 import fs from "fs";
@@ -25,3 +27,6 @@ serve({
 });
 
 console.log("Server listening on https://localhost:443");
+
+redis.loggerService.setPrefix("host-sse");
+grpc.loggerService.setPrefix("host-sse");

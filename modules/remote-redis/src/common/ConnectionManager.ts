@@ -1,7 +1,11 @@
 import { singleton } from "di-singleton";
-import { IPubsubWrappedFn, pubsub, Subject } from "functools-kit";
+import { IPubsubArray, IPubsubWrappedFn, pubsub, Subject, PubsubArrayAdapter } from "functools-kit";
 
-type MessageListener<Data extends WeakKey = any> = (data: Data) => Promise<boolean>;
+type MessageListener<Data = any> = (data: Data) => Promise<boolean>;
+
+interface IListenerConfig<Data = any> {
+  queue: IPubsubArray<[string, Data]>;
+}
 
 export const ConnectionManager = singleton(
   class {
@@ -12,9 +16,12 @@ export const ConnectionManager = singleton(
 
     constructor(readonly connectionPoolId: string) { }
 
-    listenEvent = async <Data extends WeakKey = any>(
+    listenEvent = async <Data = any>(
       id: string,
-      emit: MessageListener<Data>
+      emit: MessageListener<Data>,
+      {
+        queue = new PubsubArrayAdapter(),
+      }: Partial<IListenerConfig> = {},
     ) => {
       this._emitMap.set(id, emit);
       if (!this._listenerMap.has(id))
@@ -34,6 +41,7 @@ export const ConnectionManager = singleton(
                 this._emitMap.delete(id);
                 this._disconnectSubject.next(id);
               },
+              queue
             }
           )
         );

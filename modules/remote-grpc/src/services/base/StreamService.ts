@@ -14,8 +14,6 @@ import {
   singleshot,
   sleep,
   singlerun,
-  PubsubArrayAdapter,
-  IPubsubArrayFactory
 } from "functools-kit";
 
 type Ctor = new (...args: any[]) => grpc.Client;
