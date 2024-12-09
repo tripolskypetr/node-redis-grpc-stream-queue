@@ -9,6 +9,7 @@
     "build": "rollup -c"
   },
   "dependencies": {
-    "@modules/remote-grpc": "*"
+    "@modules/remote-grpc": "*",
+    "@modules/remote-redis": "*"
   }
 }

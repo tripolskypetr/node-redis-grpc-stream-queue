@@ -2,3 +2,4 @@ build/*
 !build/.gitkeep
 docs/*
 !docs/.gitkeep
+./docker/redis_data

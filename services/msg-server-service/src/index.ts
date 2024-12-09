@@ -1,5 +1,5 @@
 import { grpc } from "@modules/remote-grpc";
-import { sleep } from 'functools-kit';
+import { redis } from '@modules/remote-redis';
 
 function getSecondsSinceMidnight() {
     const now = new Date();
@@ -11,6 +11,8 @@ function getSecondsSinceMidnight() {
 
 const send = grpc.streamService.makeServer<{ side: string, value: string }>("MessageService", async (message) => {
     console.log(`from=${message.data.side} value=${message.data.value} stamp=${message.stamp}`)
+}, {
+    queue: redis.msgServerServerConnection,
 });
 
 setInterval(() => {
@@ -28,3 +30,4 @@ setInterval(() => {
 }, 1_000);
 
 grpc.loggerService.setPrefix("msg-server-service");
+redis.loggerService.setPrefix("msg-server-service");
