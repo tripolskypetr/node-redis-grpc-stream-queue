@@ -30,3 +30,4 @@ export const redis = {
 }
 
 export { BroadcastRedis, TBroadcastRedis } from './common/BroadcastRedis';
+export { BroadcastMemory, TBroadcastMemory } from './common/BroadcastMemory';
