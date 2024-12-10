@@ -20,10 +20,13 @@ export const BaseMap = factory(
         { key, value }
       );
       const redis = await this.redisService.getRedis();
+      const mapTtl = await redis.pttl(`${this.connectionKey}:map`);
       await redis.hset(`${this.connectionKey}:map`, key, JSON.stringify(value));
+      await redis.pexpire(`${this.connectionKey}:map`, mapTtl === -2 ? TTL_EXPIRE_SECONDS : mapTtl);
       const isKeyPresent = await redis.lpos(`${this.connectionKey}:order`, key);
       if (isKeyPresent === null) {
         await redis.rpush(`${this.connectionKey}:order`, key);
+        await redis.pexpire(`${this.connectionKey}:order`,  mapTtl === -2 ? TTL_EXPIRE_SECONDS : mapTtl);
       }
     }
 
@@ -71,7 +74,7 @@ export const BaseMap = factory(
     async clear(): Promise<void> {
       this.loggerService.log(`BaseMap clear connection=${this.connectionKey}`);
       const redis = await this.redisService.getRedis();
-      await redis.del(this.connectionKey);
+      await redis.del(`${this.connectionKey}:map`);
       await redis.del(`${this.connectionKey}:order`);
     }
 

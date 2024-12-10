@@ -17,7 +17,9 @@ export const BaseList = factory(class {
   async pushWithKeepExpire(value: any): Promise<void> {
     this.loggerService.log(`BaseList pushWithKeepExpire connection=${this.connectionKey}`, { value });
     const redis = await this.redisService.getRedis();
+    const ttl = await redis.pttl(this.connectionKey);
     await redis.rpush(this.connectionKey, JSON.stringify(value));
+    await redis.pexpire(this.connectionKey, ttl === -2 ? TTL_EXPIRE_SECONDS : ttl);
   }
 
   async push(value: any): Promise<void> {
