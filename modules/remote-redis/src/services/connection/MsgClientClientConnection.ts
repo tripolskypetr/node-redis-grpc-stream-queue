@@ -1,7 +1,7 @@
-import BaseConnection from "src/common/BaseConnection";
+import BaseList from "src/common/BaseList";
 import createConnectionKey from "src/utils/createConnectionKey";
 
-export class MsgClientClientConnection extends BaseConnection(createConnectionKey("msg-client", "client")) {
+export class MsgClientClientConnection extends BaseList(createConnectionKey("msg-client", "client")) {
 }
 
 export type TMsgClientClientConnection = InstanceType<typeof MsgClientClientConnection>;

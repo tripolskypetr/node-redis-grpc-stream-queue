@@ -1,7 +1,7 @@
-import BaseConnection from "src/common/BaseConnection";
+import BaseList from "src/common/BaseList";
 import createConnectionKey from "src/utils/createConnectionKey";
 
-export class HostWsClientConnection extends BaseConnection(createConnectionKey("host-ws", "client")) {
+export class HostWsClientConnection extends BaseList(createConnectionKey("host-ws", "client")) {
 }
 
 export type THostWsClientConnection = InstanceType<typeof HostWsClientConnection>;

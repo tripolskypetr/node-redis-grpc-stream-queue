@@ -1,7 +1,7 @@
-import BaseConnection from "src/common/BaseConnection";
+import BaseList from "src/common/BaseList";
 import createConnectionKey from "src/utils/createConnectionKey";
 
-export class HostSseClientConnection extends BaseConnection(createConnectionKey("host-sse", "client")) {
+export class HostSseClientConnection extends BaseList(createConnectionKey("host-sse", "client")) {
 }
 
 export type THostSseClientConnection = InstanceType<typeof HostSseClientConnection>;

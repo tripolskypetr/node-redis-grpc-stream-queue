@@ -1,5 +1,7 @@
 import Redis from 'ioredis';
-import { BehaviorSubject, Subject, IPubsubWrappedFn, IPubsubArray } from 'functools-kit';
+import * as functools_kit from 'functools-kit';
+import { BehaviorSubject, Subject, IPubsubWrappedFn } from 'functools-kit';
+import RedisService$1 from 'src/services/base/RedisService';
 
 declare class ErrorService {
     handleGlobalError: (error: Error) => never;
@@ -17,6 +19,7 @@ declare class RedisService {
     private readonly loggerService;
     readonly redisSubject: BehaviorSubject<Redis>;
     getRedis: () => Promise<Redis>;
+    private makePingInterval;
     protected init: () => void;
 }
 
@@ -24,6 +27,7 @@ declare const HostSseClientConnection_base: (new () => {
     readonly redisService: RedisService;
     readonly loggerService: LoggerService;
     readonly connectionKey: string;
+    pushWithKeepExpire(value: any): Promise<void>;
     push(value: any): Promise<void>;
     shift(): Promise<any | null>;
     length(): Promise<number>;
@@ -35,6 +39,7 @@ declare const HostSseClientConnection_base: (new () => {
         readonly redisService: RedisService;
         readonly loggerService: LoggerService;
         readonly connectionKey: string;
+        pushWithKeepExpire(value: any): Promise<void>;
         push(value: any): Promise<void>;
         shift(): Promise<any | null>;
         length(): Promise<number>;
@@ -50,6 +55,7 @@ declare const HostWsClientConnection_base: (new () => {
     readonly redisService: RedisService;
     readonly loggerService: LoggerService;
     readonly connectionKey: string;
+    pushWithKeepExpire(value: any): Promise<void>;
     push(value: any): Promise<void>;
     shift(): Promise<any | null>;
     length(): Promise<number>;
@@ -61,6 +67,7 @@ declare const HostWsClientConnection_base: (new () => {
         readonly redisService: RedisService;
         readonly loggerService: LoggerService;
         readonly connectionKey: string;
+        pushWithKeepExpire(value: any): Promise<void>;
         push(value: any): Promise<void>;
         shift(): Promise<any | null>;
         length(): Promise<number>;
@@ -76,6 +83,7 @@ declare const MsgClientClientConnection_base: (new () => {
     readonly redisService: RedisService;
     readonly loggerService: LoggerService;
     readonly connectionKey: string;
+    pushWithKeepExpire(value: any): Promise<void>;
     push(value: any): Promise<void>;
     shift(): Promise<any | null>;
     length(): Promise<number>;
@@ -87,6 +95,7 @@ declare const MsgClientClientConnection_base: (new () => {
         readonly redisService: RedisService;
         readonly loggerService: LoggerService;
         readonly connectionKey: string;
+        pushWithKeepExpire(value: any): Promise<void>;
         push(value: any): Promise<void>;
         shift(): Promise<any | null>;
         length(): Promise<number>;
@@ -102,6 +111,7 @@ declare const MsgServerServerConnection_base: (new () => {
     readonly redisService: RedisService;
     readonly loggerService: LoggerService;
     readonly connectionKey: string;
+    pushWithKeepExpire(value: any): Promise<void>;
     push(value: any): Promise<void>;
     shift(): Promise<any | null>;
     length(): Promise<number>;
@@ -113,6 +123,7 @@ declare const MsgServerServerConnection_base: (new () => {
         readonly redisService: RedisService;
         readonly loggerService: LoggerService;
         readonly connectionKey: string;
+        pushWithKeepExpire(value: any): Promise<void>;
         push(value: any): Promise<void>;
         shift(): Promise<any | null>;
         length(): Promise<number>;
@@ -124,83 +135,66 @@ declare const MsgServerServerConnection_base: (new () => {
 declare class MsgServerServerConnection extends MsgServerServerConnection_base {
 }
 
-declare const HostSseWebConnection_base: (new () => {
-    readonly redisService: RedisService;
-    readonly loggerService: LoggerService;
-    readonly connectionKey: string;
-    push(value: any): Promise<void>;
-    shift(): Promise<any | null>;
-    length(): Promise<number>;
-    getFirst(): Promise<any | null>;
-    clear(): Promise<void>;
-    [Symbol.asyncIterator](): AsyncIterableIterator<any>;
-}) & Omit<{
-    new (connectionKey: string): {
-        readonly redisService: RedisService;
-        readonly loggerService: LoggerService;
-        readonly connectionKey: string;
-        push(value: any): Promise<void>;
-        shift(): Promise<any | null>;
-        length(): Promise<number>;
-        getFirst(): Promise<any | null>;
-        clear(): Promise<void>;
-        [Symbol.asyncIterator](): AsyncIterableIterator<any>;
-    };
-}, "prototype">;
-declare class HostSseWebConnection extends HostSseWebConnection_base {
-}
-
-declare const HostWsWebConnection_base: (new () => {
-    readonly redisService: RedisService;
-    readonly loggerService: LoggerService;
-    readonly connectionKey: string;
-    push(value: any): Promise<void>;
-    shift(): Promise<any | null>;
-    length(): Promise<number>;
-    getFirst(): Promise<any | null>;
-    clear(): Promise<void>;
-    [Symbol.asyncIterator](): AsyncIterableIterator<any>;
-}) & Omit<{
-    new (connectionKey: string): {
-        readonly redisService: RedisService;
-        readonly loggerService: LoggerService;
-        readonly connectionKey: string;
-        push(value: any): Promise<void>;
-        shift(): Promise<any | null>;
-        length(): Promise<number>;
-        getFirst(): Promise<any | null>;
-        clear(): Promise<void>;
-        [Symbol.asyncIterator](): AsyncIterableIterator<any>;
-    };
-}, "prototype">;
-declare class HostWsWebConnection extends HostWsWebConnection_base {
-}
-
 type MessageListener<Data = any> = (data: Data) => Promise<boolean>;
-interface IListenerConfig<Data = any> {
-    queue: IPubsubArray<[string, Data]>;
-}
-declare const ConnectionManager: {
-    new (connectionPoolId: string): {
+type ConnectionEmit = keyof {
+    "host-sse__redis-emit": never;
+    "host-ws__redis-emit": never;
+};
+declare const BroadcastRedis: {
+    new (connectionEmitId: ConnectionEmit): {
+        readonly redisService: RedisService$1;
         _disconnectSubject: Subject<string>;
         _listenerMap: Map<string, IPubsubWrappedFn<any>>;
         _emitMap: Map<string, MessageListener<any>>;
-        readonly connectionPoolId: string;
-        listenEvent: <Data = any>(id: string, emit: MessageListener<Data>, { queue, }?: Partial<IListenerConfig>) => Promise<void>;
+        getEmitQueue: ((id: string) => {
+            readonly redisService: RedisService$1;
+            readonly loggerService: LoggerService;
+            readonly connectionKey: string;
+            setWithKeepExpire(key: string, value: any): Promise<void>;
+            set(key: string, value: any): Promise<void>;
+            get(key: string): Promise<any | null>;
+            delete(key: string): Promise<void>;
+            has(key: string): Promise<boolean>;
+            clear(): Promise<void>;
+            keys(): AsyncIterableIterator<string>;
+            values(): AsyncIterableIterator<any>;
+            getFirst(): Promise<any | null>;
+            shift(): Promise<any | null>;
+            size(): Promise<number>;
+            [Symbol.asyncIterator](): AsyncIterableIterator<[string, any]>;
+        }) & functools_kit.IClearableMemoize<string> & functools_kit.IControlMemoize<string, {
+            readonly redisService: RedisService$1;
+            readonly loggerService: LoggerService;
+            readonly connectionKey: string;
+            setWithKeepExpire(key: string, value: any): Promise<void>;
+            set(key: string, value: any): Promise<void>;
+            get(key: string): Promise<any | null>;
+            delete(key: string): Promise<void>;
+            has(key: string): Promise<boolean>;
+            clear(): Promise<void>;
+            keys(): AsyncIterableIterator<string>;
+            values(): AsyncIterableIterator<any>;
+            getFirst(): Promise<any | null>;
+            shift(): Promise<any | null>;
+            size(): Promise<number>;
+            [Symbol.asyncIterator](): AsyncIterableIterator<[string, any]>;
+        }>;
+        readonly connectionEmitId: ConnectionEmit;
+        listenEvent: <Data = any>(id: string, emit: MessageListener<Data>) => Promise<void>;
         listenDisconnect: (id: string, fn: () => void) => void;
-        emit: <Data extends WeakKey = any>(data: Data) => void;
+        _getTotalListeners: () => Promise<string[]>;
+        _pushOnlineListener: (id: string) => Promise<void>;
+        emit: <Data = any>(data: Data) => Promise<void>;
     };
 } & {
     clear(): void;
-    clear(connectionPoolId: string): void;
+    clear(connectionEmitId: "host-sse__redis-emit" | "host-ws__redis-emit"): void;
 };
-type TConnectionManager = InstanceType<typeof ConnectionManager>;
+type TBroadcastRedis = InstanceType<typeof BroadcastRedis>;
 
 declare const redis: {
     hostSseClientConnection: HostSseClientConnection;
     hostWsClientConnection: HostWsClientConnection;
-    hostSseWebConnection: HostSseWebConnection;
-    hostWsWebConnection: HostWsWebConnection;
     msgClientClientConnection: MsgClientClientConnection;
     msgServerServerConnection: MsgServerServerConnection;
     redisService: RedisService;
@@ -208,4 +202,4 @@ declare const redis: {
     errorService: ErrorService;
 };
 
-export { ConnectionManager, type TConnectionManager, redis };
+export { BroadcastRedis, type TBroadcastRedis, redis };

@@ -8,8 +8,6 @@ import HostSseClientConnection from "./services/connection/HostSseClientConnecti
 import HostWsClientConnection from "./services/connection/HostWsClientConnection";
 import MsgClientClientConnection from "./services/connection/MsgClientClientConnection";
 import MsgServerServerConnection from "./services/connection/MsgServerServerConnection";
-import HostSseWebConnection from "./services/connection/HostSseWebConnection";
-import HostWsWebConnection from "./services/connection/HostWsWebConnection";
 
 const baseServices = {
     redisService: inject<RedisService>(TYPES.redisService),
@@ -20,8 +18,6 @@ const baseServices = {
 const dataServices = {
     hostSseClientConnection: inject<HostSseClientConnection>(TYPES.hostSseClientConnection),
     hostWsClientConnection: inject<HostWsClientConnection>(TYPES.hostWsClientConnection),
-    hostSseWebConnection: inject<HostSseWebConnection>(TYPES.hostSseWebConnection),
-    hostWsWebConnection: inject<HostWsWebConnection>(TYPES.hostWsWebConnection),
     msgClientClientConnection: inject<MsgClientClientConnection>(TYPES.msgClientClientConnection),
     msgServerServerConnection: inject<MsgServerServerConnection>(TYPES.msgServerServerConnection),
 };
@@ -33,4 +29,4 @@ export const redis = {
     ...dataServices,
 }
 
-export { ConnectionManager, TConnectionManager } from './common/ConnectionManager';
+export { BroadcastRedis, TBroadcastRedis } from './common/BroadcastRedis';

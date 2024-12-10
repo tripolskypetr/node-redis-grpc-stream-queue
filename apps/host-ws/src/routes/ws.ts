@@ -1,11 +1,11 @@
 import { WSContext } from "hono/ws";
 
 import { grpc } from "@modules/remote-grpc";
-import { ConnectionManager, redis } from "@modules/remote-redis";
+import { BroadcastRedis, redis } from "@modules/remote-redis";
 import { singleshot } from "functools-kit";
 import { app, upgradeWebSocket } from "src/config/app";
 
-const connectionManager = new ConnectionManager("ws");
+const connectionManager = new BroadcastRedis("host-ws__redis-emit");
 
 app.get("/api/v1/realtime/ws", upgradeWebSocket(() => {
 
@@ -18,8 +18,6 @@ app.get("/api/v1/realtime/ws", upgradeWebSocket(() => {
       }
       ws.send(JSON.stringify(data));
       return true;
-    }, {
-      queue: redis.hostWsWebConnection,
     });
 
     connectionManager.listenDisconnect(sessionId, () => {
