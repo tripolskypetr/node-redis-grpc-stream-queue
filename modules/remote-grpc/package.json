@@ -20,7 +20,7 @@
     "di-singleton": "1.0.5",
     "di-kit": "1.0.11",
     "di-lazy": "1.0.4",
-    "functools-kit": "1.0.46",
+    "functools-kit": "1.0.49",
     "long": "5.2.3",
     "pinolog": "1.0.2"
   }

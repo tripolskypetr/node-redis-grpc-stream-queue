@@ -6,6 +6,19 @@
 
 While the server or the client offline, the message buffering to the queue. After reconnect, all of them will be senden in the order of emit. The architecture expect each part of the chain can be restarted separately. Also, when you need, that software design allows to attach the queue to the Redis which will make system to restore it's state even after complete shut down
 
+## Benchmark
+
+> After setting up all the following test cases you can use the Playwright benchmark
+
+![playwright-benchmark](./assets/playwright-benchmark.gif)
+
+**Running**
+
+```bash
+npm run install:playwright
+npm run test
+```
+
 ## Test case 1: console-grpc-streaming
 
 > Console apps which stream events to each other through gRPC

@@ -21,7 +21,7 @@
     "di-kit": "1.0.11",
     "di-lazy": "1.0.4",
     "di-singleton": "1.0.5",
-    "functools-kit": "1.0.46",
+    "functools-kit": "1.0.49",
     "ioredis": "5.4.1",
     "long": "5.2.3",
     "pinolog": "1.0.2"

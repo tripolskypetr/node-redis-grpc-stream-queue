@@ -64,18 +64,7 @@ export const BroadcastRedis = singleton(
                 await queue.clear();
                 this.getEmitQueue.clear(id);
               },
-              queue: new class {
-                clear = async () => await queue.clear();
-                getFirst = async () => await queue.getFirst();
-                length = async () => await queue.size();
-                push = async ([key, value]: [string, Data]) => await queue.set(key, value);
-                shift = async () => await queue.shift();
-                async *[Symbol.asyncIterator](): AsyncIterableIterator<[string, Data]> {
-                  for await (const entry of queue) {
-                    yield entry;
-                  }
-                }
-              }
+              queue: pubsub.fromMap(queue),
             }
           )
         );
