@@ -18,6 +18,10 @@ pre.innerHTML += `Session id: ${sessionId}\n`;
 
 const eventSource = new EventSource(`/api/v1/realtime/sse/${sessionId}`);
 
+eventSource.onopen = () => {
+    pre.innerHTML += "SSE connection opened.\n";
+};
+
 eventSource.onmessage = (event) => {
     pre.innerHTML += `Message: ${event.data}\n`;
 };
@@ -27,5 +31,7 @@ eventSource.onerror = (error) => {
     pre.innerHTML += `Stream closed. Check console for error`;
     eventSource.close();
 };
+
+window.eventSource = eventSource;
 
 </script>

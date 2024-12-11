@@ -35,4 +35,7 @@ socket.addEventListener("error", (error) => {
     console.error(error);
     pre.innerHTML += "WebSocket error occurred. Check console for details.\n";
 });
+
+window.socket = socket;
+
 </script>

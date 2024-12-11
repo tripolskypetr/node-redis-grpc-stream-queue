@@ -2,6 +2,7 @@
     "name": "node-grpc-stream-queue",
     "private": true,
     "scripts": { 
+        "test": "npx playwright test --ui --config=playwright.config.ts",
         "start:msg-client": "node ./services/msg-client-service/build/index.mjs",
         "start:msg-server": "node ./services/msg-server-service/build/index.mjs",
         "start:host-sse": "node ./apps/host-sse/build/index.mjs",
@@ -18,7 +19,8 @@
         "postinstall:lerna": "npm list -g lerna || npm install -g lerna",
         "proto:dts": "node ./scripts/generate-dts.mjs",
         "proto:path": "node ./scripts/get-proto-path.mjs",
-        "translit:rus": "node ./scripts/rus-translit.cjs"
+        "translit:rus": "node ./scripts/rus-translit.cjs",
+        "install:playwright": "npx playwright install --with-deps chromium"
     },
     "workspaces": [
         "./apps/*",
@@ -38,6 +40,7 @@
         "rollup-plugin-inject-process-env": "1.3.1",
         "rollup-plugin-peer-deps-external": "2.2.4",
         "@rollup/plugin-typescript": "11.1.6",
+        "@playwright/test": "1.44.1",
         "tslib": "2.7.0",
         "dotenv-cli": "7.4.2",
         "translit-rus-eng": "1.0.8",
