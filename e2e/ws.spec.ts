@@ -1,20 +1,26 @@
-import { test, expect, chromium } from "@playwright/test";
+import { test, expect, chromium, Browser } from "@playwright/test";
 
 import { execpool } from "functools-kit";
 
 const NAVIGATION_TIMEOUT = 1 * 60 * 1_000;
 const STEP_TIMEOUT = 0.5 * 30 * 1_000;
 
-const TOTAL_TESTS = 50;
+const TOTAL_TESTS = 100;
 const TESTS_PER_ITER = 10;
 
+let browser: Browser;
+
+test.beforeEach(async () => {
+  browser = await chromium.launch();
+});
+
+test.afterEach(async () => {
+  await browser.close();
+});
+
+test.setTimeout(0);
+
 test("host-ws parallel", async () => {
-  test.setTimeout(0);
-
-  const browser = await chromium.launch({
-    
-  });
-
   const makeTest = execpool(
     async (i) => {
       const context = await browser.newContext({
@@ -76,6 +82,4 @@ test("host-ws parallel", async () => {
   }
 
   await expect(true).toBeTruthy();
-
-  await browser.close();
 });
