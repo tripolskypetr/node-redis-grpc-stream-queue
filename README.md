@@ -1,4 +1,4 @@
-# 🔥 node-grpc-stream-queue
+# 🔥 node-redis-grpc-stream-queue
 
 > Enables reliable bidirectional gRPC streaming with automatic retries, message queuing, error handling, and logging, supporting real-time communication between distributed services in a robust and fault-tolerant manner.
 
