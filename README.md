@@ -21,7 +21,7 @@ npm run test
 
 ## Test case 1: console-grpc-streaming
 
-> Console apps which stream events to each other through gRPC
+> Console apps which stream events to each other through gRPC (**console**)
 
 ![grpc-queue](./assets/grpc-queue.gif)
 
