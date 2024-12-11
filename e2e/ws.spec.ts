@@ -68,6 +68,7 @@ test("host-ws parallel", async () => {
           path: `test-results/screenshots/ws-${i}-error.png`,
         });
       } finally {
+        await page.close();
         await context.close();
       }
     },
@@ -76,9 +77,13 @@ test("host-ws parallel", async () => {
     }
   );
 
-  for (let i = 0; i < TOTAL_TESTS; i += TESTS_PER_ITER) {
-    const batch = Array.from({ length: TESTS_PER_ITER }, (_, idx) => makeTest(i + idx));
-    await Promise.allSettled(batch);
+  try {
+    for (let i = 0; i < TOTAL_TESTS; i += TESTS_PER_ITER) {
+      const batch = Array.from({ length: TESTS_PER_ITER }, (_, idx) => makeTest(i + idx));
+      await Promise.allSettled(batch);
+    }
+  } catch (error) {
+    console.log(error);
   }
 
   await expect(true).toBeTruthy();

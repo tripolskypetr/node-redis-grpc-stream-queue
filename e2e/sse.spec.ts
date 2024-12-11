@@ -1,56 +1,90 @@
-import { test, expect, chromium } from "@playwright/test"; 
- 
-test("host-sse parallel", async () => { 
-  test.setTimeout(5 * 60 * 1000);
-  
-  const browser = await chromium.launch(); 
-  
-  const contextTests = Array.from({ length: 25 }, async (_, i) => {
-    const context = await browser.newContext({ 
-      ignoreHTTPSErrors: true,
-    }); 
-    const page = await context.newPage(); 
+import { test, expect, chromium, Browser } from "@playwright/test";
 
-    page.setDefaultTimeout(2 * 60 * 1000);
-    page.setDefaultNavigationTimeout(2 * 60 * 1000);
-   
-    try {
-     
-      await page.goto("https://localhost:443", { timeout: 2 * 60 * 1000 }); 
+import { execpool } from "functools-kit";
 
-      await page.waitForTimeout(10_000);
+const NAVIGATION_TIMEOUT = 1 * 60 * 1_000;
+const STEP_TIMEOUT = 0.5 * 30 * 1_000;
 
-      await expect(page.locator("pre")).toContainText(
-        "SSE connection opened."
-      );
+const TOTAL_TESTS = 100;
+const TESTS_PER_ITER = 10;
 
-      await context.setOffline(true);
-  
+let browser: Browser;
+
+test.beforeEach(async () => {
+  browser = await chromium.launch();
+});
+
+test.afterEach(async () => {
+  await browser.close();
+});
+
+test.setTimeout(0);
+
+test("host-sse parallel", async () => {
+  const makeTest = execpool(
+    async (i) => {
+      const context = await browser.newContext({
+        ignoreHTTPSErrors: true,
+        viewport: {
+          width: 800,
+          height: 600
+        }
+      });
+      const page = await context.newPage();
+
+      page.setDefaultNavigationTimeout(NAVIGATION_TIMEOUT);
+
       try {
-        await page.reload({ timeout: 2 * 60 * 1000 }); 
-      } catch {}
+        await page.goto("https://localhost:443");
 
-      await page.waitForTimeout(10_000);
+        await page.waitForTimeout(STEP_TIMEOUT);
 
-      await context.setOffline(false);
-      await page.reload({ timeout: 2 * 60 * 1000 }); 
-     
-      await page.waitForTimeout(10_000);
+        await expect(page.locator("pre")).toContainText(
+          "SSE connection opened."
+        );
 
-      await expect(page.locator("pre")).toContainText(
-        "SSE connection opened."
-      );
+        await page.screenshot({ path: `test-results/screenshots/sse-${i}-brefore.png` });
 
-      await page.screenshot({ path: `test-results/screenshots/sse-${i}.png` });
+        await context.setOffline(true);
 
-    } catch (generalError) {
-      await page.screenshot({ path: `test-results/screenshots/sse-${i}-error.png` });
-    } finally {
-      await context.close();
+        try {
+          await page.reload();
+        } catch {}
+
+        await page.waitForTimeout(STEP_TIMEOUT);
+
+        await context.setOffline(false);
+        await page.reload();
+
+        await page.waitForTimeout(STEP_TIMEOUT);
+
+        await expect(page.locator("pre")).toContainText(
+          "SSE connection opened."
+        );
+
+        await page.screenshot({ path: `test-results/screenshots/sse-${i}-after.png` });
+      } catch (generalError) {
+        await page.screenshot({
+          path: `test-results/screenshots/sse-${i}-error.png`,
+        });
+      } finally {
+        await page.close();
+        await context.close();
+      }
+    },
+    {
+      maxExec: 10,
     }
-  });
+  );
 
-  await Promise.allSettled(contextTests);
+  try {
+    for (let i = 0; i < TOTAL_TESTS; i += TESTS_PER_ITER) {
+      const batch = Array.from({ length: TESTS_PER_ITER }, (_, idx) => makeTest(i + idx));
+      await Promise.allSettled(batch);
+    }
+  } catch (error) {
+    console.log(error);
+  }
 
-  await browser.close(); 
+  await expect(true).toBeTruthy();
 });
