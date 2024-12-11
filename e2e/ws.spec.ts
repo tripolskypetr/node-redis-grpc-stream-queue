@@ -73,7 +73,7 @@ test("host-ws parallel", async () => {
       }
     },
     {
-      maxExec: 10,
+      maxExec: TESTS_PER_ITER,
     }
   );
 
