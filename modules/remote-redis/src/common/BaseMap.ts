@@ -15,7 +15,7 @@ export const BaseMap = factory(
     constructor(readonly connectionKey: string) {}
 
     async setWithKeepExpire(key: string, value: any): Promise<void> {
-      this.loggerService.log(
+      this.loggerService.debug(
         `BaseMap setWithKeepExpire key=${key} connection=${this.connectionKey}`,
         { key, value }
       );
@@ -31,7 +31,7 @@ export const BaseMap = factory(
     }
 
     async set(key: string, value: any): Promise<void> {
-      this.loggerService.log(
+      this.loggerService.debug(
         `BaseMap set key=${key} connection=${this.connectionKey}`,
         { key, value }
       );
@@ -46,7 +46,7 @@ export const BaseMap = factory(
     }
 
     async get(key: string): Promise<any | null> {
-      this.loggerService.log(
+      this.loggerService.debug(
         `BaseMap get key=${key} connection=${this.connectionKey}`
       );
       const redis = await this.redisService.getRedis();
@@ -55,7 +55,7 @@ export const BaseMap = factory(
     }
 
     async delete(key: string): Promise<void> {
-      this.loggerService.log(
+      this.loggerService.debug(
         `BaseMap delete key=${key} connection=${this.connectionKey}`
       );
       const redis = await this.redisService.getRedis();
@@ -64,7 +64,7 @@ export const BaseMap = factory(
     }
 
     async has(key: string): Promise<boolean> {
-      this.loggerService.log(
+      this.loggerService.debug(
         `BaseMap has key=${key} connection=${this.connectionKey}`
       );
       const redis = await this.redisService.getRedis();
@@ -72,14 +72,14 @@ export const BaseMap = factory(
     }
 
     async clear(): Promise<void> {
-      this.loggerService.log(`BaseMap clear connection=${this.connectionKey}`);
+      this.loggerService.debug(`BaseMap clear connection=${this.connectionKey}`);
       const redis = await this.redisService.getRedis();
       await redis.del(`${this.connectionKey}:map`);
       await redis.del(`${this.connectionKey}:order`);
     }
 
     async *[Symbol.asyncIterator](): AsyncIterableIterator<[string, any]> {
-      this.loggerService.log(
+      this.loggerService.debug(
         `BaseMap iterate connection=${this.connectionKey}`
       );
       const redis = await this.redisService.getRedis();
@@ -104,7 +104,7 @@ export const BaseMap = factory(
 
         for (let i = 0; i < keys.length; i++) {
           if (typeof values[i] !== "string") {
-            this.loggerService.log(
+            this.loggerService.debug(
               `BaseMap iterate missing value for key=${keys[i]} connection=${this.connectionKey}`
             );
             continue;
@@ -117,7 +117,7 @@ export const BaseMap = factory(
     }
 
     async *keys(): AsyncIterableIterator<string> {
-      this.loggerService.log(
+      this.loggerService.debug(
         `BaseMap iterate keys connection=${this.connectionKey}`
       );
       const redis = await this.redisService.getRedis();
@@ -143,7 +143,7 @@ export const BaseMap = factory(
     }
 
     async *values(): AsyncIterableIterator<any> {
-      this.loggerService.log(
+      this.loggerService.debug(
         `BaseMap iterate values connection=${this.connectionKey}`
       );
       const redis = await this.redisService.getRedis();
@@ -168,7 +168,7 @@ export const BaseMap = factory(
 
         for (let i = 0; i < keys.length; i++) {
           if (typeof values[i] !== "string") {
-            this.loggerService.log(
+            this.loggerService.debug(
               `BaseMap iterate values missing value for key=${keys[i]} connection=${this.connectionKey}`
             );
             continue;
@@ -181,7 +181,7 @@ export const BaseMap = factory(
     }
 
     async getFirst(): Promise<any | null> {
-      this.loggerService.log(
+      this.loggerService.debug(
         `BaseMap getFirst connection=${this.connectionKey}`
       );
       const redis = await this.redisService.getRedis();
@@ -197,7 +197,7 @@ export const BaseMap = factory(
     }
 
     async shift(): Promise<any | null> {
-      this.loggerService.log(`BaseMap shift connection=${this.connectionKey}`);
+      this.loggerService.debug(`BaseMap shift connection=${this.connectionKey}`);
       const redis = await this.redisService.getRedis();
       const firstKey = await redis.lpop(`${this.connectionKey}:order`);
       if (firstKey) {
@@ -209,7 +209,7 @@ export const BaseMap = factory(
     }
 
     async size(): Promise<number> {
-      this.loggerService.log(`BaseMap size connection=${this.connectionKey}`);
+      this.loggerService.debug(`BaseMap size connection=${this.connectionKey}`);
       const redis = await this.redisService.getRedis();
       return await redis.llen(`${this.connectionKey}:order`);
     }

@@ -11,8 +11,11 @@ declare class ErrorService {
 
 declare class LoggerService {
     private _logger;
+    private _debug;
     log: (...args: any[]) => void;
+    debug: (...args: any[]) => void;
     setPrefix: (prefix: string) => void;
+    setDebug: (debug: boolean) => void;
 }
 
 declare class RedisService {

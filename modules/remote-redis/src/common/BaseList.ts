@@ -15,7 +15,7 @@ export const BaseList = factory(class {
   }
 
   async pushWithKeepExpire(value: any): Promise<void> {
-    this.loggerService.log(`BaseList pushWithKeepExpire connection=${this.connectionKey}`, { value });
+    this.loggerService.debug(`BaseList pushWithKeepExpire connection=${this.connectionKey}`, { value });
     const redis = await this.redisService.getRedis();
     const ttl = await redis.pttl(this.connectionKey);
     await redis.rpush(this.connectionKey, JSON.stringify(value));
@@ -23,34 +23,34 @@ export const BaseList = factory(class {
   }
 
   async push(value: any): Promise<void> {
-    this.loggerService.log(`BaseList push connection=${this.connectionKey}`, { value });
+    this.loggerService.debug(`BaseList push connection=${this.connectionKey}`, { value });
     const redis = await this.redisService.getRedis();
     await redis.rpush(this.connectionKey, JSON.stringify(value));
     await redis.expire(this.connectionKey, TTL_EXPIRE_SECONDS);
   }
 
   async shift(): Promise<any | null> {
-    this.loggerService.log(`BaseList shift connection=${this.connectionKey}`);
+    this.loggerService.debug(`BaseList shift connection=${this.connectionKey}`);
     const redis = await this.redisService.getRedis();
     const value = await redis.lpop(this.connectionKey);
     return value ? JSON.parse(value) : null;
   }
 
   async length(): Promise<number> {
-    this.loggerService.log(`BaseList length connection=${this.connectionKey}`);
+    this.loggerService.debug(`BaseList length connection=${this.connectionKey}`);
     const redis = await this.redisService.getRedis();
     return await redis.llen(this.connectionKey);
   }
 
   async getFirst(): Promise<any | null> {
-    this.loggerService.log(`BaseList getFirst connection=${this.connectionKey}`);
+    this.loggerService.debug(`BaseList getFirst connection=${this.connectionKey}`);
     const redis = await this.redisService.getRedis();
     const value = await redis.lindex(this.connectionKey, 0);
     return value ? JSON.parse(value) : null;
   }
 
   async *[Symbol.asyncIterator](): AsyncIterableIterator<any> {
-    this.loggerService.log(`BaseList iterate connection=${this.connectionKey}`);
+    this.loggerService.debug(`BaseList iterate connection=${this.connectionKey}`);
     const redis = await this.redisService.getRedis();
     const length = await this.length();
     for (let i = 0; i < length; i++) {
@@ -60,7 +60,7 @@ export const BaseList = factory(class {
   }
 
   async clear(): Promise<void> {
-    this.loggerService.log(`BaseList clear connection=${this.connectionKey}`);
+    this.loggerService.debug(`BaseList clear connection=${this.connectionKey}`);
     const redis = await this.redisService.getRedis();
     await redis.del(this.connectionKey);
   }
