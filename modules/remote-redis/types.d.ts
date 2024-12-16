@@ -30,6 +30,7 @@ declare const HostSseClientConnection_base: (new () => {
     readonly redisService: RedisService;
     readonly loggerService: LoggerService;
     readonly connectionKey: string;
+    readonly TTL_EXPIRE_SECONDS: number;
     pushWithKeepExpire(value: any): Promise<void>;
     push(value: any): Promise<void>;
     shift(): Promise<any | null>;
@@ -38,10 +39,11 @@ declare const HostSseClientConnection_base: (new () => {
     clear(): Promise<void>;
     [Symbol.asyncIterator](): AsyncIterableIterator<any>;
 }) & Omit<{
-    new (connectionKey: string): {
+    new (connectionKey: string, TTL_EXPIRE_SECONDS?: number): {
         readonly redisService: RedisService;
         readonly loggerService: LoggerService;
         readonly connectionKey: string;
+        readonly TTL_EXPIRE_SECONDS: number;
         pushWithKeepExpire(value: any): Promise<void>;
         push(value: any): Promise<void>;
         shift(): Promise<any | null>;
@@ -58,6 +60,7 @@ declare const HostWsClientConnection_base: (new () => {
     readonly redisService: RedisService;
     readonly loggerService: LoggerService;
     readonly connectionKey: string;
+    readonly TTL_EXPIRE_SECONDS: number;
     pushWithKeepExpire(value: any): Promise<void>;
     push(value: any): Promise<void>;
     shift(): Promise<any | null>;
@@ -66,10 +69,11 @@ declare const HostWsClientConnection_base: (new () => {
     clear(): Promise<void>;
     [Symbol.asyncIterator](): AsyncIterableIterator<any>;
 }) & Omit<{
-    new (connectionKey: string): {
+    new (connectionKey: string, TTL_EXPIRE_SECONDS?: number): {
         readonly redisService: RedisService;
         readonly loggerService: LoggerService;
         readonly connectionKey: string;
+        readonly TTL_EXPIRE_SECONDS: number;
         pushWithKeepExpire(value: any): Promise<void>;
         push(value: any): Promise<void>;
         shift(): Promise<any | null>;
@@ -86,6 +90,7 @@ declare const MsgClientClientConnection_base: (new () => {
     readonly redisService: RedisService;
     readonly loggerService: LoggerService;
     readonly connectionKey: string;
+    readonly TTL_EXPIRE_SECONDS: number;
     pushWithKeepExpire(value: any): Promise<void>;
     push(value: any): Promise<void>;
     shift(): Promise<any | null>;
@@ -94,10 +99,11 @@ declare const MsgClientClientConnection_base: (new () => {
     clear(): Promise<void>;
     [Symbol.asyncIterator](): AsyncIterableIterator<any>;
 }) & Omit<{
-    new (connectionKey: string): {
+    new (connectionKey: string, TTL_EXPIRE_SECONDS?: number): {
         readonly redisService: RedisService;
         readonly loggerService: LoggerService;
         readonly connectionKey: string;
+        readonly TTL_EXPIRE_SECONDS: number;
         pushWithKeepExpire(value: any): Promise<void>;
         push(value: any): Promise<void>;
         shift(): Promise<any | null>;
@@ -114,6 +120,7 @@ declare const MsgServerServerConnection_base: (new () => {
     readonly redisService: RedisService;
     readonly loggerService: LoggerService;
     readonly connectionKey: string;
+    readonly TTL_EXPIRE_SECONDS: number;
     pushWithKeepExpire(value: any): Promise<void>;
     push(value: any): Promise<void>;
     shift(): Promise<any | null>;
@@ -122,10 +129,11 @@ declare const MsgServerServerConnection_base: (new () => {
     clear(): Promise<void>;
     [Symbol.asyncIterator](): AsyncIterableIterator<any>;
 }) & Omit<{
-    new (connectionKey: string): {
+    new (connectionKey: string, TTL_EXPIRE_SECONDS?: number): {
         readonly redisService: RedisService;
         readonly loggerService: LoggerService;
         readonly connectionKey: string;
+        readonly TTL_EXPIRE_SECONDS: number;
         pushWithKeepExpire(value: any): Promise<void>;
         push(value: any): Promise<void>;
         shift(): Promise<any | null>;
@@ -153,6 +161,7 @@ declare const BroadcastRedis: {
             readonly redisService: RedisService$1;
             readonly loggerService: LoggerService;
             readonly connectionKey: string;
+            readonly TTL_EXPIRE_SECONDS: number;
             setWithKeepExpire(key: string, value: any): Promise<void>;
             set(key: string, value: any): Promise<void>;
             get(key: string): Promise<any | null>;
@@ -169,6 +178,7 @@ declare const BroadcastRedis: {
             readonly redisService: RedisService$1;
             readonly loggerService: LoggerService;
             readonly connectionKey: string;
+            readonly TTL_EXPIRE_SECONDS: number;
             setWithKeepExpire(key: string, value: any): Promise<void>;
             set(key: string, value: any): Promise<void>;
             get(key: string): Promise<any | null>;

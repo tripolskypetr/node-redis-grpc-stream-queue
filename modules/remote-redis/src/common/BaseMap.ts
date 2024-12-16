@@ -5,14 +5,14 @@ import LoggerService from "src/services/base/LoggerService";
 import RedisService from "src/services/base/RedisService";
 
 const ITERATOR_BATCH_SIZE = 100;
-const TTL_EXPIRE_SECONDS = 5 * 60;
+const DEFAULT_TTL_EXPIRE_SECONDS = 5 * 60;
 
 export const BaseMap = factory(
   class {
     readonly redisService = inject<RedisService>(TYPES.redisService);
     readonly loggerService = inject<LoggerService>(TYPES.loggerService);
 
-    constructor(readonly connectionKey: string) {}
+    constructor(readonly connectionKey: string, readonly TTL_EXPIRE_SECONDS = DEFAULT_TTL_EXPIRE_SECONDS) {}
 
     async setWithKeepExpire(key: string, value: any): Promise<void> {
       this.loggerService.debug(
@@ -22,11 +22,19 @@ export const BaseMap = factory(
       const redis = await this.redisService.getRedis();
       const mapTtl = await redis.pttl(`${this.connectionKey}:map`);
       await redis.hset(`${this.connectionKey}:map`, key, JSON.stringify(value));
-      await redis.pexpire(`${this.connectionKey}:map`, mapTtl === -2 ? TTL_EXPIRE_SECONDS : mapTtl);
+      if (this.TTL_EXPIRE_SECONDS === -1) {
+        await redis.persist(`${this.connectionKey}:map`);
+      } else {
+        await redis.pexpire(`${this.connectionKey}:map`, mapTtl === -2 ? this.TTL_EXPIRE_SECONDS : mapTtl);
+      }
       const isKeyPresent = await redis.lpos(`${this.connectionKey}:order`, key);
       if (isKeyPresent === null) {
         await redis.rpush(`${this.connectionKey}:order`, key);
-        await redis.pexpire(`${this.connectionKey}:order`,  mapTtl === -2 ? TTL_EXPIRE_SECONDS : mapTtl);
+        if (this.TTL_EXPIRE_SECONDS === -1) {
+          await redis.persist(`${this.connectionKey}:order`);
+        } else {
+          await redis.pexpire(`${this.connectionKey}:order`,  mapTtl === -2 ? this.TTL_EXPIRE_SECONDS : mapTtl);
+        }
       }
     }
 
@@ -41,8 +49,13 @@ export const BaseMap = factory(
       if (isKeyPresent === null) {
         await redis.rpush(`${this.connectionKey}:order`, key);
       }
-      await redis.expire(`${this.connectionKey}:map`, TTL_EXPIRE_SECONDS);
-      await redis.expire(`${this.connectionKey}:order`, TTL_EXPIRE_SECONDS);
+      if (this.TTL_EXPIRE_SECONDS === -1) {
+        await redis.persist(`${this.connectionKey}:map`);
+        await redis.persist(`${this.connectionKey}:order`);
+      } else {
+        await redis.expire(`${this.connectionKey}:map`, this.TTL_EXPIRE_SECONDS);
+        await redis.expire(`${this.connectionKey}:order`, this.TTL_EXPIRE_SECONDS);
+      }
     }
 
     async get(key: string): Promise<any | null> {

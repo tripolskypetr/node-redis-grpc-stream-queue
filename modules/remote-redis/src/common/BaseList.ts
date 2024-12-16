@@ -4,14 +4,14 @@ import { inject } from 'src/core/di';
 import LoggerService from 'src/services/base/LoggerService';
 import RedisService from 'src/services/base/RedisService';
 
-const TTL_EXPIRE_SECONDS = 5 * 60;
+const DEFAULT_TTL_EXPIRE_SECONDS = 5 * 60;
 
 export const BaseList = factory(class {
   
   readonly redisService = inject<RedisService>(TYPES.redisService);
   readonly loggerService = inject<LoggerService>(TYPES.loggerService);
 
-  constructor(readonly connectionKey: string) {
+  constructor(readonly connectionKey: string, readonly TTL_EXPIRE_SECONDS = DEFAULT_TTL_EXPIRE_SECONDS) {
   }
 
   async pushWithKeepExpire(value: any): Promise<void> {
@@ -19,14 +19,22 @@ export const BaseList = factory(class {
     const redis = await this.redisService.getRedis();
     const ttl = await redis.pttl(this.connectionKey);
     await redis.rpush(this.connectionKey, JSON.stringify(value));
-    await redis.pexpire(this.connectionKey, ttl === -2 ? TTL_EXPIRE_SECONDS : ttl);
+    if (this.TTL_EXPIRE_SECONDS === -1) {
+      await redis.persist(this.connectionKey);
+      return;
+    }
+    await redis.pexpire(this.connectionKey, ttl === -2 ? this.TTL_EXPIRE_SECONDS : ttl);
   }
 
   async push(value: any): Promise<void> {
     this.loggerService.debug(`BaseList push connection=${this.connectionKey}`, { value });
     const redis = await this.redisService.getRedis();
     await redis.rpush(this.connectionKey, JSON.stringify(value));
-    await redis.expire(this.connectionKey, TTL_EXPIRE_SECONDS);
+    if (this.TTL_EXPIRE_SECONDS === -1) {
+      await redis.persist(this.connectionKey);
+      return;
+    } 
+    await redis.expire(this.connectionKey, this.TTL_EXPIRE_SECONDS);
   }
 
   async shift(): Promise<any | null> {
