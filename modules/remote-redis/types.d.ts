@@ -1,10 +1,11 @@
-import Redis from 'ioredis';
 import * as functools_kit from 'functools-kit';
-import { BehaviorSubject, Subject, IPubsubWrappedFn } from 'functools-kit';
+import { TSubject, BehaviorSubject, Subject, IPubsubWrappedFn } from 'functools-kit';
+import Redis from 'ioredis';
 import RedisService$1 from 'src/services/base/RedisService';
 
 declare class ErrorService {
-    handleGlobalError: (error: Error) => never;
+    get beforeExitSubject(): TSubject<void>;
+    handleGlobalError: (error: Error) => Promise<void>;
     private _listenForError;
     protected init: () => void;
 }
@@ -197,6 +198,7 @@ declare const BroadcastRedis: {
         listenDisconnect: (id: string, fn: () => void) => void;
         _getTotalListeners: () => Promise<string[]>;
         _pushOnlineListener: (id: string) => Promise<void>;
+        _popOnlineListener: (id: string) => Promise<boolean>;
         emit: <Data = any>(data: Data) => Promise<void>;
     };
 } & {

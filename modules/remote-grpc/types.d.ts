@@ -1,6 +1,6 @@
 import * as grpc$1 from '@grpc/grpc-js';
+import { TSubject, CANCELED_PROMISE_SYMBOL, IPubsubArray } from 'functools-kit';
 import { CC_GRPC_MAP as CC_GRPC_MAP$1 } from 'src/config/params';
-import { CANCELED_PROMISE_SYMBOL, IPubsubArray } from 'functools-kit';
 
 declare class LoggerService {
     private _logger;
@@ -44,7 +44,8 @@ declare class ProtoService {
 }
 
 declare class ErrorService {
-    handleGlobalError: (error: Error) => never;
+    get beforeExitSubject(): TSubject<void>;
+    handleGlobalError: (error: Error) => Promise<void>;
     private _listenForError;
     protected init: () => void;
 }
@@ -68,11 +69,13 @@ interface IMakeServerConfig<T = object> {
 declare class StreamService {
     private readonly protoService;
     private readonly loggerService;
+    private readonly errorService;
     _serverRef: Map<string, grpc$1.Server>;
     _makeServerInternal: <T = object>(serviceName: ServiceName, connector: (incoming: IMessage<T>) => Promise<void>, reconnect: (error: boolean) => void, attempt: number) => SendMessageFn<any>;
     _makeClientInternal: <T = object>(serviceName: ServiceName, connector: (incoming: IMessage<T>) => Promise<void>, reconnect: (error: boolean) => void, attempt: number) => SendMessageFn<any>;
     makeServer: <T = object>(serviceName: ServiceName, connector: (incoming: IMessage<T>) => Promise<void>, { queue }?: Partial<IMakeServerConfig>) => SendMessageFn<any>;
     makeClient: <T = object>(serviceName: ServiceName, connector: (incoming: IMessage<T>) => Promise<void>, { queue }?: Partial<IMakeClientConfig>) => SendMessageFn<any>;
+    protected init: () => void;
 }
 
 declare const grpc: {

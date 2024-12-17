@@ -18,6 +18,7 @@ import {
   PubsubArrayAdapter,
   randomString,
 } from "functools-kit";
+import ErrorService from "./ErrorService";
 
 type Ctor = new (...args: any[]) => grpc.Client;
 type ServiceName = keyof typeof CC_GRPC_MAP;
@@ -40,7 +41,8 @@ export type SendMessageFn<T = object> = (
   outgoing: IMessage<T>
 ) => Promise<void | typeof CANCELED_PROMISE_SYMBOL>;
 
-const GRPC_READY_DELAY = 60_000;
+const GRPC_READY_DELAY = 1_000;
+const GRPC_RECONNECT_DELAY = 1_000;
 const GRPC_MAX_RETRY = 15;
 
 export interface IMakeClientConfig<T = object> {
@@ -58,6 +60,7 @@ interface IAwaiter {
 export class StreamService {
   private readonly protoService = inject<ProtoService>(TYPES.protoService);
   private readonly loggerService = inject<LoggerService>(TYPES.loggerService);
+  private readonly errorService = inject<ErrorService>(TYPES.errorService);
 
   _serverRef = new Map<string, grpc.Server>();
 
@@ -224,14 +227,12 @@ export class StreamService {
 
     grpcClient.waitForReady(Date.now() + GRPC_READY_DELAY, (err) => {
       if (err) {
-        throw new (class extends Error {
-          constructor() {
-            super(
-              `Failed to listen the server ${serviceName}, host=${grpcHost}`
-            );
-          }
-          originalError = errorData(err);
-        })();
+        this.loggerService.log(
+          `remote-grpc streamService _makeClientInternal connection timeout service=${serviceName} attempt=${attempt}`,
+          errorData(err),
+        );
+        reconnect(true);
+        return;
       }
       const fn = get(grpcClient, "connect").bind(grpcClient);
       const call = fn() as grpc.ClientWritableStream<IMessage<string>>;
@@ -364,6 +365,7 @@ export class StreamService {
             );
             throw CHANNEL_ERROR_SYMBOL;
           }
+          attempt = 0;
           await awaiter.resolve();
         } catch {
           isOk = false;
@@ -379,7 +381,6 @@ export class StreamService {
     {
       const makeConnection = () => {
         attempt += 1;
-        reconnectSubject.next(CHANNEL_RECONNECT_SYMBOL);
         outgoingFnRef = this._makeServerInternal<T>(
           serviceName,
           connectorFn,
@@ -390,10 +391,12 @@ export class StreamService {
                 `remote-grpc streamService makeServer max retry reached service=${serviceName}`
               );
             }
+            await sleep(GRPC_RECONNECT_DELAY);
             makeConnection();
           }),
           attempt
         );
+        reconnectSubject.next(CHANNEL_RECONNECT_SYMBOL);
       };
       makeConnection();
     }
@@ -469,6 +472,7 @@ export class StreamService {
             );
             throw CHANNEL_ERROR_SYMBOL;
           }
+          attempt = 0;
           await awaiter.resolve();
         } catch {
           isOk = false;
@@ -484,7 +488,6 @@ export class StreamService {
     {
       const makeConnection = () => {
         attempt += 1;
-        reconnectSubject.next(CHANNEL_RECONNECT_SYMBOL);
         outgoingFnRef = this._makeClientInternal<T>(
           serviceName,
           connectorFn,
@@ -495,10 +498,12 @@ export class StreamService {
                 `remote-grpc streamService makeClient max retry reached service=${serviceName}`
               );
             }
+            await sleep(GRPC_RECONNECT_DELAY);
             makeConnection();
           }),
           attempt
         );
+        reconnectSubject.next(CHANNEL_RECONNECT_SYMBOL);
       };
       makeConnection();
     }
@@ -529,6 +534,17 @@ export class StreamService {
       attempt = 0;
     };
   };
+
+  protected init = () => {
+    const shutdown = () => {
+      for (const server of this._serverRef.values()) {
+        server.forceShutdown();
+      }
+    }
+    process.on('SIGINT', shutdown);
+    process.on('SIGTERM', shutdown);
+    this.errorService.beforeExitSubject.subscribe(shutdown);
+  }
 }
 
 export default StreamService;

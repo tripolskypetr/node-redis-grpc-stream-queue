@@ -89,3 +89,14 @@ npm run start:msg-server
 npm run start:host-ws
 npx -y open-cli http://localhost
 ```
+
+## Example of connection reestablishment with PM2
+
+```bash
+npm install -g pm2
+pm2 start ./ecosystem.config.js
+npx -y open-cli http://localhost
+pm2 stop msg-server
+pm2 start msg-server
+pm2 kill
+```
