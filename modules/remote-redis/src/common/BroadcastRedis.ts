@@ -62,6 +62,7 @@ export const BroadcastRedis = singleton(
                 this._emitMap.delete(id);
                 this._disconnectSubject.next(id);
                 await queue.clear();
+                await this._popOnlineListener(id);
                 this.getEmitQueue.clear(id);
               },
               queue: pubsub.fromMap(queue),
@@ -87,6 +88,13 @@ export const BroadcastRedis = singleton(
     _pushOnlineListener = async (id: string) => {
       const redis = await this.redisService.getRedis();
       await redis.setex(`${this.connectionEmitId}__${id}:online`, TTL_ONLINE_SECONDS, 'online');
+    };
+
+    _popOnlineListener = async (id: string) => {
+      const redis = await this.redisService.getRedis();
+      const key = `${this.connectionEmitId}__${id}:online`;
+      const deletedCount = await redis.del(key);
+      return deletedCount > 0;
     };
 
     emit = async <Data = any>(data: Data) => {
