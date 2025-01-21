@@ -122,7 +122,9 @@ export const BaseMap = factory(
             );
             continue;
           }
-          yield [keys[i], values[i] ? JSON.parse(values[i]!) : null];
+          if (values[i]) {
+            yield [keys[i], JSON.parse(values[i]!)];
+          }
         }
 
         start += batchSize;

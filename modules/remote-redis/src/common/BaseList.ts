@@ -63,7 +63,9 @@ export const BaseList = factory(class {
     const length = await this.length();
     for (let i = 0; i < length; i++) {
       const value = await redis.lindex(this.connectionKey, i);
-      yield value ? JSON.parse(value) : null;
+      if (value) {
+        yield JSON.parse(value)
+      }
     }
   }
 
